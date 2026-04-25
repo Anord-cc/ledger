@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ledger}
+      POSTGRES_USER: ${POSTGRES_USER:-ledger}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api:
+    image: node:20-bookworm
+    working_dir: /app
+    command: sh -c "npm install && npm run db:migrate && npm run db:seed && npm run dev:api"
+    env_file:
+      - .env
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+      - ./storage/uploads:/app/storage/uploads
+    depends_on:
+      - postgres
+      - redis
+
+  web:
+    image: node:20-bookworm
+    working_dir: /app
+    command: sh -c "npm install && npm run dev:web -- --host 0.0.0.0"
+    env_file:
+      - .env
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+    depends_on:
+      - api
+
+  worker:
+    image: node:20-bookworm
+    working_dir: /app
+    command: sh -c "npm install && npm run dev:worker"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    depends_on:
+      - api
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
