@@ -3,18 +3,46 @@ import { pool } from "../db/pool.js";
 
 const FIXED_FOOTER = "Powered by Ledger made by ANord.cc";
 
+function parseFooterLinks(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [] as Array<{ label: string; href: string }>;
+  }
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const label = "label" in item ? String(item.label ?? "").trim() : "";
+      const href = "href" in item ? String(item.href ?? "").trim() : "";
+      if (!label || !href) {
+        return null;
+      }
+
+      return { label, href };
+    })
+    .filter(Boolean) as Array<{ label: string; href: string }>;
+}
+
 export async function getBrandingSettings() {
   const result = await pool.query(`SELECT * FROM branding_settings ORDER BY created_at ASC LIMIT 1`);
-  return (
+  const row =
     result.rows[0] ?? {
       id: "default",
       site_name: "Ledger",
       logo_url: null,
       brand_color: "#245cff",
       footer_text: FIXED_FOOTER,
+      footer_links: [],
       public_knowledge_base_enabled: true
-    }
-  );
+    };
+
+  return {
+    ...row,
+    footer_text: FIXED_FOOTER,
+    footer_links: parseFooterLinks(row.footer_links)
+  };
 }
 
 export async function upsertBrandingSettings(input: {
@@ -22,6 +50,7 @@ export async function upsertBrandingSettings(input: {
   logoUrl: string | null;
   brandColor: string;
   publicKnowledgeBaseEnabled: boolean;
+  footerLinks: Array<{ label: string; href: string }>;
 }) {
   const existing = await getBrandingSettings();
   if (existing) {
@@ -29,7 +58,7 @@ export async function upsertBrandingSettings(input: {
       `
         UPDATE branding_settings
         SET site_name = $2, logo_url = $3, brand_color = $4, footer_text = $5,
-            public_knowledge_base_enabled = $6, updated_at = now()
+            public_knowledge_base_enabled = $6, footer_links = $7, updated_at = now()
         WHERE id = $1
         RETURNING *
       `,
@@ -39,16 +68,21 @@ export async function upsertBrandingSettings(input: {
         input.logoUrl,
         input.brandColor,
         FIXED_FOOTER,
-        input.publicKnowledgeBaseEnabled
+        input.publicKnowledgeBaseEnabled,
+        JSON.stringify(input.footerLinks)
       ]
     );
-    return result.rows[0];
+    return {
+      ...result.rows[0],
+      footer_text: FIXED_FOOTER,
+      footer_links: parseFooterLinks(result.rows[0].footer_links)
+    };
   }
 
   const created = await pool.query(
     `
-      INSERT INTO branding_settings (site_name, logo_url, brand_color, footer_text, public_knowledge_base_enabled)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO branding_settings (site_name, logo_url, brand_color, footer_text, public_knowledge_base_enabled, footer_links)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `,
     [
@@ -56,10 +90,15 @@ export async function upsertBrandingSettings(input: {
       input.logoUrl,
       input.brandColor,
       FIXED_FOOTER,
-      input.publicKnowledgeBaseEnabled
+      input.publicKnowledgeBaseEnabled,
+      JSON.stringify(input.footerLinks)
     ]
   );
-  return created.rows[0];
+  return {
+    ...created.rows[0],
+    footer_text: FIXED_FOOTER,
+    footer_links: parseFooterLinks(created.rows[0].footer_links)
+  };
 }
 
 export async function getAdminSettingsBundle() {

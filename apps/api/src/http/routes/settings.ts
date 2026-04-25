@@ -8,7 +8,13 @@ const brandingSchema = z.object({
   siteName: z.string().min(2),
   logoUrl: z.string().url().nullable(),
   brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  publicKnowledgeBaseEnabled: z.boolean()
+  publicKnowledgeBaseEnabled: z.boolean(),
+  footerLinks: z.array(
+    z.object({
+      label: z.string().min(1),
+      href: z.string().url()
+    })
+  ).default([])
 });
 
 export const settingsRouter = Router();
@@ -20,7 +26,8 @@ settingsRouter.get("/public", async (_req, res) => {
       siteName: branding.site_name,
       logoUrl: branding.logo_url,
       brandColor: branding.brand_color,
-      publicKnowledgeBaseEnabled: branding.public_knowledge_base_enabled
+      publicKnowledgeBaseEnabled: branding.public_knowledge_base_enabled,
+      footerLinks: branding.footer_links ?? []
     }
   });
 });

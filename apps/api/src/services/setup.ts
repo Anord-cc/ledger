@@ -48,7 +48,7 @@ export async function initializeLedger(input: SetupInput) {
       `
         UPDATE branding_settings
         SET site_name = $1, brand_color = $2, footer_text = $3,
-            public_knowledge_base_enabled = $4, updated_at = now()
+            public_knowledge_base_enabled = $4, footer_links = '[]'::jsonb, updated_at = now()
         WHERE id = (SELECT id FROM branding_settings ORDER BY created_at ASC LIMIT 1)
         RETURNING id
       `,

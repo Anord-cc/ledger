@@ -70,6 +70,7 @@ export interface BrandingSettings {
   logoUrl: string | null;
   brandColor: string;
   publicKnowledgeBaseEnabled: boolean;
+  footerLinks: Array<{ label: string; href: string }>;
 }
 
 export interface SmtpSettings {

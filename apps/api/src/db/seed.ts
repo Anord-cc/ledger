@@ -23,8 +23,8 @@ async function main() {
 
   await pool.query(
     `
-      INSERT INTO branding_settings (site_name, logo_url, brand_color, footer_text, public_knowledge_base_enabled)
-      SELECT 'Ledger', NULL, '#245cff', 'Built for fast, trusted answers.', true
+      INSERT INTO branding_settings (site_name, logo_url, brand_color, footer_text, public_knowledge_base_enabled, footer_links)
+      SELECT 'Ledger', NULL, '#245cff', 'Powered by Ledger made by ANord.cc', true, '[]'::jsonb
       WHERE NOT EXISTS (SELECT 1 FROM branding_settings)
     `
   );
