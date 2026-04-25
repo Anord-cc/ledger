@@ -36,9 +36,8 @@ const adminNav = [
   ["permissions", "Permissions"],
   ["integrations", "Integrations"],
   ["webhooks", "Webhooks"],
-  ["ai", "AI Settings"],
-  ["mcp", "MCP"],
-  ["import-history", "Import History"],
+  ["ai", "AI & MCP"],
+  ["import-history", "Import"],
   ["activity", "Activity"]
 ] as const;
 
@@ -56,9 +55,8 @@ const adminGroups = [
     items: [
       ["integrations", "Integrations"],
       ["webhooks", "Webhooks"],
-      ["ai", "AI Settings"],
-      ["mcp", "MCP"],
-      ["import-history", "Import History"],
+      ["ai", "AI & MCP"],
+      ["import-history", "Import"],
       ["activity", "Activity"]
     ]
   }
@@ -74,14 +72,24 @@ const webhookEvents = [
   "search.no_results"
 ] as const;
 
+const roleDetails: Record<string, string> = {
+  owner: "Full control over settings, members, content, and infrastructure features.",
+  admin: "Manage workspace configuration, members, imports, integrations, and webhook behavior.",
+  editor: "Create and update documents, drafts, and import content where enabled.",
+  viewer: "Read internal content that is available to authenticated members.",
+  public: "Read only public content without signing in."
+};
+
 export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUser; spaces: Space[] }) {
   const { section = "general" } = useParams();
-  const currentSection = adminNav.some(([key]) => key === section) ? section : "general";
+  const normalizedSection = section === "mcp" ? "ai" : section;
+  const currentSection = adminNav.some(([key]) => key === normalizedSection) ? normalizedSection : "general";
   const [brandingForm, setBrandingForm] = useState({
     siteName: "Ledger",
     logoUrl: "",
     brandColor: "#245cff",
-    publicKnowledgeBaseEnabled: true
+    publicKnowledgeBaseEnabled: true,
+    footerLinks: [] as Array<{ label: string; href: string }>
   });
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [groups, setGroups] = useState<AdminGroup[]>([]);
@@ -134,7 +142,7 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
           api.get<{ groups: AdminGroup[] }>("/api/admin/groups"),
           api.get<{ roles: Array<{ id: string; key: string; name: string }> }>("/api/roles"),
           api.get<{
-            branding: { site_name: string; logo_url: string | null; brand_color: string; footer_text: string | null; public_knowledge_base_enabled: boolean };
+            branding: { site_name: string; logo_url: string | null; brand_color: string; footer_text: string | null; public_knowledge_base_enabled: boolean; footer_links: Array<{ label: string; href: string }> };
             mcp: { endpoint: string; authMode: string };
           }>("/api/settings/admin"),
           api.get<{ integrations: IntegrationSummary[] }>("/api/integrations"),
@@ -151,7 +159,8 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
         siteName: settingsResponse.branding.site_name,
         logoUrl: settingsResponse.branding.logo_url ?? "",
         brandColor: settingsResponse.branding.brand_color,
-        publicKnowledgeBaseEnabled: settingsResponse.branding.public_knowledge_base_enabled
+        publicKnowledgeBaseEnabled: settingsResponse.branding.public_knowledge_base_enabled,
+        footerLinks: settingsResponse.branding.footer_links ?? []
       });
       setMcpSettings(settingsResponse.mcp);
       setIntegrations(integrationsResponse.integrations);
@@ -217,7 +226,8 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
         siteName: brandingForm.siteName,
         logoUrl: brandingForm.logoUrl || null,
         brandColor: brandingForm.brandColor,
-        publicKnowledgeBaseEnabled: brandingForm.publicKnowledgeBaseEnabled
+        publicKnowledgeBaseEnabled: brandingForm.publicKnowledgeBaseEnabled,
+        footerLinks: brandingForm.footerLinks.filter((link) => link.label.trim() && link.href.trim())
       });
       setStatus("General settings saved.");
     } catch (error) {
@@ -320,15 +330,13 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
       case "permissions":
         return ["Admin", "Permissions", "Review role capabilities and how restricted pages are enforced."];
       case "integrations":
-        return ["Admin", "Integrations", "Configure source systems and send people into the import workflow when the connector is ready."];
+        return ["Admin", "Integrations", "Configure source systems, check connector health, and jump into importing content."];
       case "webhooks":
         return ["Admin", "Webhooks", "Manage outbound event delivery, signing secrets, and recent delivery attempts."];
       case "ai":
-        return ["Admin", "AI Settings", "Configure AI providers and review how retrieval and citations behave."];
-      case "mcp":
-        return ["Admin", "MCP", "Inspect Ledger’s MCP surface and understand how auth and permissions apply."];
+        return ["Admin", "AI & MCP", "Configure AI providers, review answer behavior, and inspect the MCP surface exposed by Ledger."];
       case "import-history":
-        return ["Admin", "Import history", "Review import jobs, status, and outcomes."];
+        return ["Admin", "Import", "Launch imports and review recent import activity from one place."];
       case "activity":
         return ["Admin", "Activity", "Review recent audit activity across the workspace."];
       default:
@@ -416,13 +424,67 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
                 </label>
               </div>
 
-              <div className="settings-row">
-                <div className="settings-row__content">
-                  <strong>Footer</strong>
-                  <p>Fixed product footer shown on every page.</p>
+                <div className="settings-row">
+                  <div className="settings-row__content">
+                    <strong>Footer links</strong>
+                    <p>Add support, status, or policy links beside the fixed Ledger footer line.</p>
+                  </div>
+                  <div className="settings-row__control settings-row__control-stack">
+                    {brandingForm.footerLinks.length === 0 ? <p className="muted">No footer links configured yet.</p> : null}
+                    {brandingForm.footerLinks.map((link, index) => (
+                      <div key={`${link.label}-${index}`} className="settings-inline-grid">
+                        <input
+                          value={link.label}
+                          placeholder="Label"
+                          onChange={(event) =>
+                            setBrandingForm((current) => ({
+                              ...current,
+                              footerLinks: current.footerLinks.map((item, itemIndex) =>
+                                itemIndex === index ? { ...item, label: event.target.value } : item
+                              )
+                            }))
+                          }
+                        />
+                        <input
+                          value={link.href}
+                          placeholder="https://example.com"
+                          onChange={(event) =>
+                            setBrandingForm((current) => ({
+                              ...current,
+                              footerLinks: current.footerLinks.map((item, itemIndex) =>
+                                itemIndex === index ? { ...item, href: event.target.value } : item
+                              )
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="button-secondary"
+                          onClick={() =>
+                            setBrandingForm((current) => ({
+                              ...current,
+                              footerLinks: current.footerLinks.filter((_, itemIndex) => itemIndex !== index)
+                            }))
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      className="button-secondary"
+                      onClick={() =>
+                        setBrandingForm((current) => ({
+                          ...current,
+                          footerLinks: [...current.footerLinks, { label: "", href: "" }]
+                        }))
+                      }
+                    >
+                      Add footer link
+                    </button>
+                  </div>
                 </div>
-                <div className="settings-row__value">Powered by Ledger made by ANord.cc</div>
-              </div>
             </section>
 
             <div className="settings-actions">
@@ -432,88 +494,76 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
         ) : null}
 
         {currentSection === "members" ? (
-          <div className="admin-grid">
-            <section className="panel">
-              <div className="panel__header">
-                <div>
-                  <p className="eyebrow">Users</p>
-                  <h3>Members</h3>
+          <>
+            <section className="settings-section">
+              <h2 className="settings-section__title">Members</h2>
+              <div className="settings-row settings-row--summary">
+                <div className="settings-row__content">
+                  <strong>Workspace access</strong>
+                  <p>Members are listed here with their current effective role so admins can quickly verify who can browse, edit, and manage the knowledge base.</p>
                 </div>
+                <div className="settings-row__value">{users.length} members</div>
               </div>
-              <div className="list-grid">
-                {users.map((member) => (
-                  <div key={member.id} className="list-item">
+              {users.map((member) => (
+                <div key={member.id} className="settings-row">
+                  <div className="settings-row__content">
                     <strong>{member.display_name}</strong>
-                    <span>{member.email}</span>
+                    <p>{member.email}</p>
+                  </div>
+                  <div className="settings-row__value">
                     <span className="badge badge-internal">{member.role_key}</span>
                   </div>
-                ))}
-              </div>
-            </section>
-            <section className="panel">
-              <div className="panel__header">
-                <div>
-                  <p className="eyebrow">Groups</p>
-                  <h3>Permission groups</h3>
                 </div>
-              </div>
+              ))}
+            </section>
+            <section className="settings-section settings-section-subtle">
+              <h2 className="settings-section__title">Groups</h2>
               {groups.length === 0 ? (
                 <EmptyState title="No groups yet" description="Create groups in the backend or seed data to organize restricted pages by team." />
               ) : (
-                <div className="list-grid">
-                  {groups.map((group) => (
-                    <div key={group.id} className="list-item">
+                groups.map((group) => (
+                  <div key={group.id} className="settings-row">
+                    <div className="settings-row__content">
                       <strong>{group.name}</strong>
-                      <span>{group.description ?? "No description"}</span>
+                      <p>{group.description ?? "No description"}</p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))
               )}
             </section>
-          </div>
+          </>
         ) : null}
 
         {currentSection === "permissions" ? (
-          <div className="admin-grid">
-            <section className="panel">
-              <div className="panel__header">
-                <div>
-                  <p className="eyebrow">Roles</p>
-                  <h3>Access levels</h3>
-                </div>
-              </div>
-              <div className="list-grid">
-                {roles.map((role) => (
-                  <div key={role.id} className="list-item">
+          <>
+            <section className="settings-section">
+              <h2 className="settings-section__title">Roles</h2>
+              {roles.map((role) => (
+                <div key={role.id} className="settings-row">
+                  <div className="settings-row__content">
                     <strong>{role.name}</strong>
-                    <span>{role.key}</span>
+                    <p>{roleDetails[role.key] ?? role.key}</p>
                   </div>
-                ))}
-              </div>
+                  <div className="settings-row__value">{role.key}</div>
+                </div>
+              ))}
             </section>
-            <section className="panel">
-              <div className="panel__header">
-                <div>
-                  <p className="eyebrow">Behavior</p>
-                  <h3>Permission model</h3>
+            <section className="settings-section settings-section-subtle">
+              <h2 className="settings-section__title">Permission behavior</h2>
+              {[
+                ["Public pages", "Readable without authentication when the public knowledge base is enabled."],
+                ["Internal pages", "Readable only by authenticated users with at least viewer access."],
+                ["Restricted pages", "Require explicit role or group permissions. Search, AI, and MCP follow the same backend checks."]
+              ].map(([label, detail]) => (
+                <div key={label} className="settings-row">
+                  <div className="settings-row__content">
+                    <strong>{label}</strong>
+                    <p>{detail}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="list-grid">
-                <div className="list-item">
-                  <strong>Public pages</strong>
-                  <span>Readable without authentication when public KB is enabled.</span>
-                </div>
-                <div className="list-item">
-                  <strong>Internal pages</strong>
-                  <span>Readable only by authenticated users with at least viewer access.</span>
-                </div>
-                <div className="list-item">
-                  <strong>Restricted pages</strong>
-                  <span>Require explicit role or group permissions. Search, AI, and MCP follow the same backend checks.</span>
-                </div>
-              </div>
+              ))}
             </section>
-          </div>
+          </>
         ) : null}
 
         {currentSection === "integrations" ? (
@@ -523,50 +573,77 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
               const lastJob = importJobs.find((job) => job.provider === provider);
               const form = integrationForms[provider];
               const canRunImport = provider === "markdown_import" || integration?.status === "configured";
+              const integrationTitle = provider === "google_docs" ? "Google Docs" : provider === "github" ? "GitHub" : "Markdown Import";
+              const integrationDescription =
+                provider === "google_docs"
+                  ? "Import Google Docs content into Ledger Markdown pages and preserve source metadata."
+                  : provider === "github"
+                    ? "Connect a GitHub repository and import Markdown from a chosen branch and path."
+                    : "Upload Markdown files directly through Ledger without an external connector.";
               return (
-                <section key={provider} className="integration-card panel">
-                  <div className="panel__header">
-                    <div>
-                      <p className="eyebrow">Integration</p>
-                      <h3>{provider === "google_docs" ? "Google Docs" : provider === "github" ? "GitHub" : "Markdown Import"}</h3>
+                <section key={provider} className="settings-section settings-section-subtle integration-section">
+                  <div className="settings-row settings-row--summary">
+                    <div className="settings-row__content">
+                      <strong>{integrationTitle}</strong>
+                      <p>{integrationDescription}</p>
                     </div>
-                    <span className={`badge badge-${integration?.status === "configured" ? "public" : "restricted"}`}>
-                      {integration?.statusMessage ?? "Not configured"}
-                    </span>
+                    <div className="settings-row__value">
+                      <span className={`badge badge-${integration?.status === "configured" ? "public" : "restricted"}`}>
+                        {integration?.statusMessage ?? "Not configured"}
+                      </span>
+                    </div>
                   </div>
-                  <p className="muted">
-                    {provider === "google_docs"
-                      ? "Import Google Docs content into Ledger pages."
-                      : provider === "github"
-                        ? "Import Markdown files from a repository path."
-                        : "Upload Markdown files directly from the browser."}
-                  </p>
-                  <p className="muted">
-                    {lastJob ? `Last import: ${new Date(lastJob.updatedAt).toLocaleString()}` : "Last import: none yet"}
-                  </p>
-                  <label className="field">
-                    Name
-                    <input value={form.name} onChange={(event) => setIntegrationForms((current) => ({ ...current, [provider]: { ...current[provider], name: event.target.value } }))} />
-                  </label>
+                  <div className="settings-row">
+                    <div className="settings-row__content">
+                      <strong>Connection name</strong>
+                      <p>Used in the admin UI to identify this source.</p>
+                    </div>
+                    <div className="settings-row__control">
+                      <input value={form.name} onChange={(event) => setIntegrationForms((current) => ({ ...current, [provider]: { ...current[provider], name: event.target.value } }))} />
+                    </div>
+                  </div>
                   {provider === "github" ? (
-                    <label className="field">
-                      GitHub token
-                      <input type="password" value={form.token} onChange={(event) => setIntegrationForms((current) => ({ ...current, [provider]: { ...current[provider], token: event.target.value } }))} />
-                    </label>
+                    <div className="settings-row">
+                      <div className="settings-row__content">
+                        <strong>GitHub token</strong>
+                        <p>Required for repository previews and imports.</p>
+                      </div>
+                      <div className="settings-row__control">
+                        <input type="password" value={form.token} onChange={(event) => setIntegrationForms((current) => ({ ...current, [provider]: { ...current[provider], token: event.target.value } }))} />
+                      </div>
+                    </div>
                   ) : null}
                   {provider === "google_docs" ? (
-                    <label className="field">
-                      Google access token
-                      <input type="password" value={form.accessToken} onChange={(event) => setIntegrationForms((current) => ({ ...current, [provider]: { ...current[provider], accessToken: event.target.value } }))} />
-                    </label>
+                    <div className="settings-row">
+                      <div className="settings-row__content">
+                        <strong>Google access token</strong>
+                        <p>Required for previewing and importing Google Docs.</p>
+                      </div>
+                      <div className="settings-row__control">
+                        <input type="password" value={form.accessToken} onChange={(event) => setIntegrationForms((current) => ({ ...current, [provider]: { ...current[provider], accessToken: event.target.value } }))} />
+                      </div>
+                    </div>
                   ) : null}
-                  <label className="checkbox-row checkbox-card">
-                    <input type="checkbox" checked={form.isEnabled} onChange={(event) => setIntegrationForms((current) => ({ ...current, [provider]: { ...current[provider], isEnabled: event.target.checked } }))} />
-                    <span>Enabled</span>
-                  </label>
-                  <div className="panel__footer">
+                  <div className="settings-row">
+                    <div className="settings-row__content">
+                      <strong>Enabled</strong>
+                      <p>Allow this integration to preview and import content.</p>
+                    </div>
+                    <label className="toggle-switch">
+                      <input type="checkbox" checked={form.isEnabled} onChange={(event) => setIntegrationForms((current) => ({ ...current, [provider]: { ...current[provider], isEnabled: event.target.checked } }))} />
+                      <span className="toggle-switch__track" />
+                    </label>
+                  </div>
+                  <div className="settings-row">
+                    <div className="settings-row__content">
+                      <strong>Last import</strong>
+                      <p>Latest import activity for this source.</p>
+                    </div>
+                    <div className="settings-row__value">{lastJob ? new Date(lastJob.updatedAt).toLocaleString() : "None yet"}</div>
+                  </div>
+                  <div className="panel__footer panel__footer-start">
                     <button onClick={() => saveIntegration(provider)}>Save configuration</button>
-                    {canRunImport ? <Link to="/imports" className="button-secondary">Open imports</Link> : <button type="button" className="button-secondary" disabled title="Configure this integration before importing.">Import unavailable</button>}
+                    {canRunImport ? <Link to="/imports" className="button-secondary">Open import</Link> : <button type="button" className="button-secondary" disabled title="Configure this integration before importing.">Import unavailable</button>}
                   </div>
                 </section>
               );
@@ -642,7 +719,7 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
                 <div className="feedback-list">
                   {webhooks.map((webhook) => (
                     <div key={webhook.id} className="feedback-item">
-                      <div className="feedback-item__header">
+                      <div className="settings-row__content">
                         <strong>{webhook.name}</strong>
                         <span className={`badge badge-${webhook.isActive ? "public" : "restricted"}`}>{webhook.isActive ? "Active" : "Disabled"}</span>
                       </div>
@@ -674,108 +751,86 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
         ) : null}
 
         {currentSection === "ai" ? (
-          <section className="panel">
-            <div className="panel__header">
-              <div>
-                <p className="eyebrow">Provider configuration</p>
-                <h3>AI settings</h3>
+          <>
+            <section className="settings-section">
+              <h2 className="settings-section__title">AI provider</h2>
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>Provider</strong>
+                  <p>Select the provider type Ledger should use for answers.</p>
+                </div>
+                <div className="settings-row__control">
+                  <select value={aiSettings.provider} onChange={(event) => setAiSettings((current) => ({ ...current, provider: event.target.value }))}>
+                    <option value="none">Disabled</option>
+                    <option value="openai_compatible">OpenAI-compatible</option>
+                    <option value="anthropic_compatible">Anthropic-compatible</option>
+                  </select>
+                </div>
               </div>
-            </div>
-            <div className="field-grid">
-              <label className="field">
-                Provider
-                <select value={aiSettings.provider} onChange={(event) => setAiSettings((current) => ({ ...current, provider: event.target.value }))}>
-                  <option value="none">Disabled</option>
-                  <option value="openai_compatible">OpenAI-compatible</option>
-                  <option value="anthropic_compatible">Anthropic-compatible</option>
-                </select>
-              </label>
-              <label className="field">
-                Model
-                <input value={aiSettings.model} onChange={(event) => setAiSettings((current) => ({ ...current, model: event.target.value }))} />
-              </label>
-            </div>
-            <label className="field">
-              API key
-              <input type="password" value={aiSettings.apiKey} onChange={(event) => setAiSettings((current) => ({ ...current, apiKey: event.target.value }))} placeholder={aiSettings.hasApiKey ? "Configured. Enter a new key to rotate it." : "Paste provider key"} />
-            </label>
-            <label className="checkbox-row checkbox-card">
-              <input type="checkbox" checked={aiSettings.isEnabled} onChange={(event) => setAiSettings((current) => ({ ...current, isEnabled: event.target.checked }))} />
-              <span>Enable AI answers</span>
-            </label>
-            <div className="admin-grid">
-              <div className="list-item">
-                <strong>Retrieval settings</strong>
-                <span>Ledger uses permission-filtered keyword retrieval over permitted pages. This is active whenever AI is enabled.</span>
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>Model</strong>
+                  <p>Model identifier used by the configured provider.</p>
+                </div>
+                <div className="settings-row__control">
+                  <input value={aiSettings.model} onChange={(event) => setAiSettings((current) => ({ ...current, model: event.target.value }))} />
+                </div>
               </div>
-              <div className="list-item">
-                <strong>Answer behavior</strong>
-                <span>Answers should refuse when the KB lacks enough information instead of fabricating a response.</span>
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>API key</strong>
+                  <p>{aiSettings.hasApiKey ? "A provider key is already stored. Enter a new key to rotate it." : "Paste a provider key to enable server-side requests."}</p>
+                </div>
+                <div className="settings-row__control">
+                  <input type="password" value={aiSettings.apiKey} onChange={(event) => setAiSettings((current) => ({ ...current, apiKey: event.target.value }))} placeholder={aiSettings.hasApiKey ? "Configured" : "Paste provider key"} />
+                </div>
               </div>
-              <div className="list-item">
-                <strong>Citation behavior</strong>
-                <span>Every answer links back to source pages the user can already access.</span>
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>Enable AI answers</strong>
+                  <p>Allow Ask AI to answer from permission-filtered Ledger content.</p>
+                </div>
+                <label className="toggle-switch">
+                  <input type="checkbox" checked={aiSettings.isEnabled} onChange={(event) => setAiSettings((current) => ({ ...current, isEnabled: event.target.checked }))} />
+                  <span className="toggle-switch__track" />
+                </label>
               </div>
-            </div>
+              <div className="settings-row"><div className="settings-row__content"><strong>Retrieval settings</strong><p>Ledger searches only pages the current user can access before generating an answer.</p></div></div>
+              <div className="settings-row"><div className="settings-row__content"><strong>Answer behavior</strong><p>If the knowledge base does not contain enough information, Ledger refuses instead of inventing an answer.</p></div></div>
+              <div className="settings-row"><div className="settings-row__content"><strong>Citation behavior</strong><p>Answers cite the exact source pages the user is already allowed to open.</p></div></div>
+            </section>
             {aiSettings.provider === "none" || !aiSettings.isEnabled ? (
               <EmptyState title="AI is disabled" description="Ask AI will remain available as a page, but the primary action stays disabled until a provider is configured." />
             ) : null}
-            <div className="panel__footer">
+            <section className="settings-section settings-section-subtle">
+              <h2 className="settings-section__title">MCP server</h2>
+              <div className="settings-row"><div className="settings-row__content"><strong>Hosted endpoint</strong><p>{displayedMcpEndpoint}</p></div><div className="settings-row__value">Live path</div></div>
+              <div className="settings-row"><div className="settings-row__content"><strong>Tools</strong><p><code>search_knowledge_base</code>, <code>read_page</code>, <code>list_spaces</code>, <code>get_page_metadata</code>, <code>create_draft_page</code></p></div></div>
+              <div className="settings-row"><div className="settings-row__content"><strong>Auth</strong><p>MCP currently uses {mcpSettings.authMode === "session_cookie" ? "the active Ledger session cookie" : mcpSettings.authMode}. Dedicated API tokens are not implemented yet.</p></div></div>
+              <div className="settings-row"><div className="settings-row__content"><strong>Permission behavior</strong><p>MCP calls inherit the same backend visibility checks as page reads, search, and AI retrieval.</p></div></div>
+            </section>
+            <div className="settings-actions">
               <button onClick={saveAi}>Save AI settings</button>
             </div>
-          </section>
-        ) : null}
-
-        {currentSection === "mcp" ? (
-          <section className="panel">
-            <div className="panel__header">
-              <div>
-                <p className="eyebrow">Server status</p>
-                <h3>MCP availability</h3>
-              </div>
-            </div>
-            <div className="list-grid">
-              <div className="list-item">
-                <strong>Hosted endpoint</strong>
-                <span>{displayedMcpEndpoint}</span>
-              </div>
-              <div className="list-item">
-                <strong>Transport</strong>
-                <span>Ledger exposes MCP on the same host it is served from, so deployed workspaces use their own domain for MCP access.</span>
-              </div>
-              <div className="list-item">
-                <strong>Tools</strong>
-                <span>`search_knowledge_base`, `read_page`, `list_spaces`, `get_page_metadata`, `create_draft_page`</span>
-              </div>
-              <div className="list-item">
-                <strong>Auth</strong>
-                <span>MCP currently uses {mcpSettings.authMode === "session_cookie" ? "the active Ledger session cookie" : mcpSettings.authMode}. Dedicated API tokens are not implemented, so the UI does not claim otherwise.</span>
-              </div>
-              <div className="list-item">
-                <strong>Permission behavior</strong>
-                <span>MCP calls inherit the same backend visibility checks as page reads, search, and AI retrieval.</span>
-              </div>
-              <div className="list-item">
-                <strong>Backend compatibility</strong>
-                <span>The backend also accepts the same MCP router on its direct API service, so local development keeps working without a reverse proxy.</span>
-              </div>
-            </div>
-          </section>
+          </>
         ) : null}
 
         {currentSection === "import-history" ? (
-          <section className="panel">
+          <section className="settings-section">
+            <div className="settings-actions">
+              <Link to="/imports" className="button-secondary">Open import flow</Link>
+            </div>
             {importJobs.length === 0 ? (
               <EmptyState title="No imports yet" description="Run an import from the Imports area to populate this history." />
             ) : (
-              <div className="feedback-list">
+              <div className="settings-section settings-section-subtle">
                 {importJobs.map((job) => (
-                  <div key={job.id} className="feedback-item">
-                    <div className="feedback-item__header">
+                    <div key={job.id} className="settings-row">
+                    <div className="settings-row__content">
                       <strong>{job.sourceLabel}</strong>
-                      <span className={`badge badge-${job.status === "completed" ? "public" : "restricted"}`}>{job.status}</span>
+                        <p>{job.provider} â€¢ {job.importedCount} pages â€¢ {new Date(job.updatedAt).toLocaleString()}</p>
                     </div>
-                    <p>{job.provider} • {job.importedCount} pages</p>
+                    <p>{job.provider} â€¢ {job.importedCount} pages</p>
                     {job.errorMessage ? <p className="muted">{job.errorMessage}</p> : null}
                   </div>
                 ))}
@@ -793,7 +848,7 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
                 {activity.map((item) => (
                   <div key={item.id} className="list-item">
                     <strong>{item.action}</strong>
-                    <span>{item.actor_name} • {new Date(item.created_at).toLocaleString()}</span>
+                    <span>{item.actor_name} â€¢ {new Date(item.created_at).toLocaleString()}</span>
                     <span>{item.resource_type}:{item.resource_id}</span>
                   </div>
                 ))}

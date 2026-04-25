@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import type {
   AiCitation,
+  BrandingSettings,
   ImportJobSummary,
   IntegrationSummary,
   PageDetail,
@@ -28,12 +29,7 @@ import { SpacesPage } from "./components/SpacesPage";
 import { api } from "./lib/api";
 
 type BrandingResponse = {
-  branding: {
-    siteName: string;
-    logoUrl?: string | null;
-    brandColor: string;
-    publicKnowledgeBaseEnabled: boolean;
-  };
+  branding: BrandingSettings;
 };
 
 const LEDGER_FOOTER = "Powered by Ledger made by ANord.cc";
@@ -250,7 +246,6 @@ function DocsShell({
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
   const currentPageSlug = location.pathname.startsWith("/page/")
     ? decodeURIComponent(location.pathname.split("/page/")[1] ?? "")
     : undefined;
@@ -280,22 +275,6 @@ function DocsShell({
         results={searchResults}
         isLoading={searchLoading}
       />
-      {createOpen ? (
-        <>
-          <div className="command-palette__overlay is-open" onClick={() => setCreateOpen(false)} />
-          <div className="editor-modal" role="dialog" aria-modal="true" aria-label="Create document">
-            <PageEditor
-              spaces={spaces}
-              variant="dialog"
-              onCancel={() => setCreateOpen(false)}
-              onCreated={(slug) => {
-                setCreateOpen(false);
-                navigate(`/page/${slug}`);
-              }}
-            />
-          </div>
-        </>
-      ) : null}
 
       {loadingNavigation ? (
         <SidebarSkeleton />
@@ -343,7 +322,7 @@ function DocsShell({
             {user ? (
               <>
                 {canCreate ? (
-                  <button type="button" className="button-primary" onClick={() => setCreateOpen(true)}>
+                  <button type="button" className="button-primary" onClick={() => navigate("/new")}>
                     New doc
                   </button>
                 ) : null}
@@ -357,7 +336,18 @@ function DocsShell({
         </header>
 
         <main className="app-content">{children}</main>
-        <footer className="app-footer">{LEDGER_FOOTER}</footer>
+        <footer className="app-footer">
+          <span>{LEDGER_FOOTER}</span>
+          {branding?.footerLinks?.length ? (
+            <nav className="footer-links" aria-label="Footer links">
+              {branding.footerLinks.map((link) => (
+                <a key={`${link.label}-${link.href}`} href={link.href} target="_blank" rel="noreferrer">
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          ) : null}
+        </footer>
       </div>
     </div>
   );
@@ -683,19 +673,19 @@ function PageView({
             ) : null}
           </div>
 
-          <div className="doc-actions">
-            <button type="button" className="button-secondary" onClick={copyLink}>
-              <Icon name="copy" className="icon icon-sm" />
-              Copy link
-            </button>
-            {user && (user.role === "editor" || user.role === "admin" || user.role === "owner") ? (
-              <Link to="/admin/general" className="button-secondary">
-                <Icon name="external" className="icon icon-sm" />
-                Open admin
-              </Link>
-            ) : null}
-          </div>
-        </header>
+            <div className="doc-actions">
+              <button type="button" className="button-secondary" onClick={copyLink}>
+                <Icon name="copy" className="icon icon-sm" />
+                Copy link
+              </button>
+              {user && (user.role === "editor" || user.role === "admin" || user.role === "owner") ? (
+                <Link to={`/page/${page.slug}/edit`} className="button-secondary">
+                  <Icon name="external" className="icon icon-sm" />
+                  Edit doc
+                </Link>
+              ) : null}
+            </div>
+          </header>
 
         {page.excerpt ? <p className="doc-summary">{page.excerpt}</p> : null}
 
@@ -779,6 +769,93 @@ function PageView({
   );
 }
 
+function EditorPage({
+  spaces,
+  user
+}: {
+  spaces: Space[];
+  user: SessionUser | null;
+}) {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+  const [page, setPage] = useState<PageDetail | null>(null);
+  const [loading, setLoading] = useState(Boolean(slug));
+  const [error, setError] = useState<string | null>(null);
+  const canEdit = Boolean(user && ["editor", "admin", "owner"].includes(user.role));
+
+  useEffect(() => {
+    if (!slug) {
+      setLoading(false);
+      setPage(null);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    api
+      .get<{ page: PageDetail }>(`/api/pages/slug/${slug}`)
+      .then((response) => setPage(response.page))
+      .catch((reason) => setError(reason instanceof Error ? reason.message : "Could not load this page for editing."))
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (!canEdit) {
+    return <AccessDeniedPage />;
+  }
+
+  if (loading) {
+    return (
+      <div className="stack-page">
+        <ContentSkeleton />
+      </div>
+    );
+  }
+
+  if (error && slug) {
+    return (
+      <div className="stack-page">
+        <section className="panel">
+          <EmptyState title="Could not open editor" description={error} action={<Link to="/spaces" className="button-secondary">Back to home</Link>} />
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="stack-page">
+      <PageHeader
+        eyebrow={slug ? "Document editor" : "New document"}
+        title={slug ? `Edit ${page?.title ?? "document"}` : "Create a new document"}
+        description={slug ? "Update Markdown, visibility, and publish state from the same drafting surface." : "Start with Markdown first, then publish when the doc is ready."}
+      />
+      <PageEditor
+        spaces={spaces}
+        mode={slug ? "edit" : "create"}
+        variant="page"
+        initialPage={
+          slug && page
+            ? {
+                id: page.id,
+                spaceId: page.spaceId,
+                title: page.title,
+                slug: page.slug,
+                bodyMarkdown: page.bodyMarkdown,
+                excerpt: page.excerpt ?? "",
+                visibility: page.visibility,
+                state: page.state,
+                tags: page.tags,
+                parentPageId: page.parentPageId
+              }
+            : null
+        }
+        onSaved={(nextSlug) => navigate(`/page/${nextSlug}`)}
+        onCancel={() => navigate(slug ? `/page/${slug}` : "/spaces")}
+      />
+    </div>
+  );
+}
+
 function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -854,7 +931,8 @@ function SetupPage({
         siteName: form.siteName,
         logoUrl: null,
         brandColor: form.brandColor,
-        publicKnowledgeBaseEnabled: form.publicKnowledgeBaseEnabled
+        publicKnowledgeBaseEnabled: form.publicKnowledgeBaseEnabled,
+        footerLinks: []
       });
 
       navigate("/spaces");
@@ -1247,6 +1325,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/spaces" replace />} />
         <Route path="/login" element={<LoginPage onLogin={setUser} />} />
+        <Route path="/new" element={<EditorPage spaces={spaces} user={user} />} />
         <Route
           path="/preferences"
           element={
@@ -1278,6 +1357,7 @@ export function App() {
         <Route path="/imports" element={<ImportsPage user={user} spaces={spaces} />} />
         <Route path="/ask-ai" element={<AskAiPage />} />
         <Route path="/space/:spaceKey" element={<SpacePage spaces={spaces} pagesBySpace={pagesBySpace} />} />
+        <Route path="/page/:slug/edit" element={<EditorPage spaces={spaces} user={user} />} />
         <Route path="/page/:slug" element={<PageView spaces={spaces} pagesBySpace={pagesBySpace} user={user} />} />
         <Route path="/dashboard" element={<Navigate to="/admin/general" replace />} />
         <Route path="/admin" element={user ? (canAdmin ? <Navigate to="/admin/general" replace /> : <AccessDeniedPage />) : <LoginPage onLogin={setUser} />} />

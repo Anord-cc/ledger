@@ -20,6 +20,16 @@ export function SpacesPage({
   pagesBySpace: Record<string, PageSummary[]>;
 }) {
   const [tab, setTab] = useState<"updated" | "public" | "internal">("updated");
+  const collections = useMemo(
+    () =>
+      spaces
+        .map((space) => ({
+          ...space,
+          count: (pagesBySpace[space.key] ?? []).length
+        }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+    [pagesBySpace, spaces]
+  );
   const allPages = useMemo(
     () =>
       Object.values(pagesBySpace)
@@ -45,7 +55,7 @@ export function SpacesPage({
       <PageHeader
         eyebrow="Knowledge base"
         title="Home"
-        description="Browse the latest documentation across your workspace, then jump into collections from the left sidebar."
+        description="Open the latest docs, move between collections quickly, and keep the knowledge base feeling lightweight instead of buried in admin screens."
       />
 
       {allPages.length === 0 ? (
@@ -69,44 +79,46 @@ export function SpacesPage({
             </button>
           </div>
 
-          <section className="document-feed">
-            {visiblePages.map((page) => {
-              const space = spaces.find((entry) => entry.id === page.spaceId);
-              return (
-                <Link key={page.id} to={`/page/${page.slug}`} className="document-feed__item">
-                  <div className="document-feed__icon">
-                    <Icon name="document" className="icon icon-sm" />
-                  </div>
-                  <div className="document-feed__body">
-                    <strong className="document-feed__title">{page.title}</strong>
-                    <p className="document-feed__meta">
-                      Updated {new Date(page.updatedAt).toLocaleDateString()} in {space?.name ?? "Collection"} - {page.visibility}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </section>
+          <div className="home-content-grid">
+            <section className="document-feed">
+              {visiblePages.map((page) => {
+                const space = spaces.find((entry) => entry.id === page.spaceId);
+                return (
+                  <Link key={page.id} to={`/page/${page.slug}`} className="document-feed__item">
+                    <div className="document-feed__icon">
+                      <Icon name="document" className="icon icon-sm" />
+                    </div>
+                    <div className="document-feed__body">
+                      <strong className="document-feed__title">{page.title}</strong>
+                      <p className="document-feed__meta">
+                        Updated {new Date(page.updatedAt).toLocaleDateString()} in {space?.name ?? "Collection"} - {page.visibility}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </section>
 
-          <section className="content-section home-collections">
-            <div className="section-head">
-              <div>
-                <p className="eyebrow">Quick access</p>
-                <h3>Collections</h3>
+            <aside className="home-side-column">
+              <div className="section-head section-head--compact">
+                <div>
+                  <p className="eyebrow">Quick access</p>
+                  <h3>Collections</h3>
+                </div>
               </div>
-            </div>
-            <div className="collection-list">
-              {spaces.map((space) => (
-                <Link key={space.id} to={`/space/${space.key}`} className="collection-list__item">
-                  <div className="collection-list__body">
-                    <strong>{space.name}</strong>
-                    <p>{(pagesBySpace[space.key] ?? []).length} documents</p>
-                  </div>
-                  <span className={`badge badge-${space.visibility}`}>{space.visibility}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
+              <div className="collection-list">
+                {collections.map((space) => (
+                  <Link key={space.id} to={`/space/${space.key}`} className="collection-list__item">
+                    <div className="collection-list__body">
+                      <strong>{space.name}</strong>
+                      <p>{space.count} documents</p>
+                    </div>
+                    <span className={`badge badge-${space.visibility}`}>{space.visibility}</span>
+                  </Link>
+                ))}
+              </div>
+            </aside>
+          </div>
         </>
       )}
     </div>
