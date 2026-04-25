@@ -1,37 +1,55 @@
 import { Router } from "express";
 import { z } from "zod";
-import { env } from "../../config/env.js";
-import { searchPages } from "../../services/search.js";
+import { requireAdmin } from "../middleware/auth.js";
+import { answerQuestion, getAiSettingsRecord, upsertAiSettings } from "../../services/ai.js";
 
 const aiAnswerSchema = z.object({
   question: z.string().min(3)
 });
 
+const aiSettingsSchema = z.object({
+  provider: z.enum(["none", "openai_compatible", "anthropic_compatible"]),
+  model: z.string(),
+  apiKey: z.string().nullable(),
+  isEnabled: z.boolean()
+});
+
 export const aiRouter = Router();
+
+aiRouter.get("/settings", requireAdmin, async (_req, res) => {
+  const settings = await getAiSettingsRecord();
+  return res.json({
+    settings: settings
+      ? {
+          provider: settings.provider,
+          model: settings.model,
+          isEnabled: settings.is_enabled,
+          hasApiKey: Boolean(settings.encrypted_api_key)
+        }
+      : {
+          provider: "none",
+          model: "",
+          isEnabled: false,
+          hasApiKey: false
+        }
+  });
+});
+
+aiRouter.put("/settings", requireAdmin, async (req, res) => {
+  const input = aiSettingsSchema.parse(req.body);
+  const updated = await upsertAiSettings(input);
+  return res.json({
+    settings: {
+      provider: updated.provider,
+      model: updated.model,
+      isEnabled: updated.is_enabled,
+      hasApiKey: Boolean(updated.encrypted_api_key)
+    }
+  });
+});
 
 aiRouter.post("/answers", async (req, res) => {
   const input = aiAnswerSchema.parse(req.body);
-  const results = await searchPages(input.question, req.user ?? null);
-
-  if (results.length === 0) {
-    return res.json({
-      answer: "The knowledge base does not contain enough information to answer that confidently.",
-      citations: []
-    });
-  }
-
-  const citations = results.slice(0, 3).map((page) => ({
-    title: page.title,
-    slug: page.slug
-  }));
-
-  const answer =
-    env.AI_PROVIDER === "none"
-      ? `I found relevant Ledger pages, but no external AI provider is configured. Start with ${citations
-          .map((citation) => citation.title)
-          .join(", ")}.`
-      : `Grounded answer generation is ready for provider ${env.AI_PROVIDER}, but the provider client is not wired in this MVP.`;
-
-  return res.json({ answer, citations });
+  const result = await answerQuestion(input.question, req.user ?? null);
+  return res.json(result);
 });
-

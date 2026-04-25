@@ -20,6 +20,18 @@ type PageRecord = {
   author_name: string;
 };
 
+type SourceRow = {
+  provider: "markdown_import" | "github" | "google_docs";
+  source_url: string | null;
+  source_title: string | null;
+  source_branch: string | null;
+  source_path: string | null;
+  source_document_id: string | null;
+  imported_at: Date;
+  imported_by: string | null;
+  last_synced_at: Date | null;
+};
+
 async function getPagePermissions(pageId: string) {
   const permissions = await pool.query(
     `SELECT role_key, group_id FROM page_permissions WHERE page_id = $1`,
@@ -45,6 +57,44 @@ async function getPageTags(pageId: string): Promise<string[]> {
   );
 
   return tags.rows.map((row) => row.name);
+}
+
+async function getPageSource(pageId: string) {
+  const source = await pool.query(
+    `
+      SELECT
+        eps.provider,
+        eps.source_url,
+        eps.source_title,
+        eps.source_branch,
+        eps.source_path,
+        eps.source_document_id,
+        eps.imported_at,
+        COALESCE(u.display_name, 'Unknown') AS imported_by,
+        eps.last_synced_at
+      FROM external_page_sources eps
+      LEFT JOIN users u ON u.id = eps.imported_by_user_id
+      WHERE eps.page_id = $1
+    `,
+    [pageId]
+  );
+
+  if (!source.rowCount) {
+    return null;
+  }
+
+  const row = source.rows[0] as SourceRow;
+  return {
+    provider: row.provider,
+    sourceUrl: row.source_url,
+    sourceTitle: row.source_title,
+    sourceBranch: row.source_branch,
+    sourcePath: row.source_path,
+    sourceDocumentId: row.source_document_id,
+    importedAt: row.imported_at.toISOString(),
+    importedBy: row.imported_by,
+    lastSyncedAt: row.last_synced_at?.toISOString() ?? null
+  };
 }
 
 function toSummary(row: PageRecord, tags: string[]): PageSummary {
@@ -177,7 +227,8 @@ export async function getPageBySlug(slug: string, user: SessionUser | null): Pro
     bodyHtml: rendered.bodyHtml,
     toc: rendered.toc,
     revisionId: row.revision_id,
-    authorName: row.author_name
+    authorName: row.author_name,
+    source: await getPageSource(row.id)
   };
 }
 

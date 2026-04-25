@@ -1,7 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
-import type { PageDetail, PageSummary, SessionUser } from "@ledger/shared";
+import type {
+  AiCitation,
+  ImportJobSummary,
+  IntegrationSummary,
+  PageDetail,
+  PageSummary,
+  SessionUser,
+  WebhookDeliverySummary,
+  WebhookSummary
+} from "@ledger/shared";
 import { CommandSearch } from "./components/CommandSearch";
+import { DashboardView } from "./components/DashboardView";
 import { EmptyState } from "./components/EmptyState";
 import { FeedbackForm } from "./components/FeedbackForm";
 import { Icon } from "./components/Icon";
@@ -37,6 +47,7 @@ type Space = {
 };
 
 type PageRecordMap = Record<string, PageSummary[]>;
+type AdminFeedback = Array<{ id: string; page_title: string; helpful: boolean; comment: string | null }>;
 
 function useSession() {
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -315,6 +326,9 @@ function HomePage({
   onSearch: (query: string) => void;
 }) {
   const navigate = useNavigate();
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState<{ answer: string; citations: AiCitation[]; disabled?: boolean } | null>(null);
+  const [answerLoading, setAnswerLoading] = useState(false);
   const allPages = useMemo(
     () =>
       Object.values(pagesBySpace)
@@ -322,6 +336,29 @@ function HomePage({
         .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
     [pagesBySpace]
   );
+
+  async function askLedger(event: React.FormEvent) {
+    event.preventDefault();
+    if (!question.trim()) {
+      return;
+    }
+
+    setAnswerLoading(true);
+    try {
+      const response = await api.post<{ answer: string; citations: AiCitation[]; disabled?: boolean }>(
+        "/api/ai/answers",
+        { question }
+      );
+      setAnswer(response);
+    } catch (error) {
+      setAnswer({
+        answer: error instanceof Error ? error.message : "Could not generate an answer.",
+        citations: []
+      });
+    } finally {
+      setAnswerLoading(false);
+    }
+  }
 
   return (
     <div className="overview-layout">
@@ -386,6 +423,52 @@ function HomePage({
             ) : null}
           </div>
         </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel__header">
+          <div>
+            <p className="eyebrow">AI answers</p>
+            <h3>Ask Ledger</h3>
+          </div>
+        </div>
+        <form className="stack" onSubmit={askLedger}>
+          <label className="field">
+            Ask a question
+            <input
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="How do we onboard a new teammate?"
+            />
+          </label>
+          <div className="panel__footer">
+            <button type="submit" disabled={answerLoading}>
+              {answerLoading ? "Answering..." : "Ask Ledger"}
+            </button>
+            <p className="muted">Answers are generated only from pages the current account can read.</p>
+          </div>
+        </form>
+        {answer ? (
+          <div className="answer-card">
+            {answer.disabled ? (
+              <EmptyState
+                title="AI provider not configured"
+                description="An admin can enable an OpenAI-compatible or Anthropic-compatible provider in the manage screen."
+              />
+            ) : (
+              <>
+                <p>{answer.answer}</p>
+                <div className="citation-list">
+                  {answer.citations.map((citation) => (
+                    <Link key={citation.slug} to={`/page/${citation.slug}`} className="citation-chip">
+                      {citation.title}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : null}
       </section>
     </div>
   );
@@ -545,6 +628,12 @@ function PageView({
             <p className="doc-meta">
               Updated {new Date(page.updatedAt).toLocaleDateString()} by {page.authorName}
             </p>
+            {page.source ? (
+              <p className="doc-meta">
+                Imported from {page.source.provider.replace("_", " ")} on{" "}
+                {new Date(page.source.importedAt).toLocaleDateString()}
+              </p>
+            ) : null}
           </div>
 
           <div className="doc-actions">
@@ -597,6 +686,47 @@ function PageView({
             </div>
           </div>
         </section>
+
+        {page.source ? (
+          <section className="rail-card">
+            <p className="eyebrow">Source</p>
+            <div className="context-list">
+              <div>
+                <span>Provider</span>
+                <strong>{page.source.provider}</strong>
+              </div>
+              {page.source.sourceTitle ? (
+                <div>
+                  <span>Title</span>
+                  <strong>{page.source.sourceTitle}</strong>
+                </div>
+              ) : null}
+              {page.source.sourcePath ? (
+                <div>
+                  <span>Path</span>
+                  <strong>{page.source.sourcePath}</strong>
+                </div>
+              ) : null}
+              {page.source.sourceBranch ? (
+                <div>
+                  <span>Branch</span>
+                  <strong>{page.source.sourceBranch}</strong>
+                </div>
+              ) : null}
+              {page.source.sourceDocumentId ? (
+                <div>
+                  <span>Document ID</span>
+                  <strong>{page.source.sourceDocumentId}</strong>
+                </div>
+              ) : null}
+            </div>
+            {page.source.sourceUrl ? (
+              <a href={page.source.sourceUrl} target="_blank" rel="noreferrer" className="button-secondary inline-button">
+                Open source
+              </a>
+            ) : null}
+          </section>
+        ) : null}
       </aside>
     </div>
   );
@@ -1055,7 +1185,7 @@ export function App() {
         <Route path="/login" element={<LoginPage onLogin={setUser} />} />
         <Route path="/space/:spaceKey" element={<SpacePage spaces={spaces} pagesBySpace={pagesBySpace} />} />
         <Route path="/page/:slug" element={<PageView spaces={spaces} pagesBySpace={pagesBySpace} user={user} />} />
-        <Route path="/dashboard" element={user ? <Dashboard user={user} spaces={spaces} /> : <LoginPage onLogin={setUser} />} />
+        <Route path="/dashboard" element={user ? <DashboardView user={user} spaces={spaces} /> : <LoginPage onLogin={setUser} />} />
       </Routes>
     </DocsShell>
   );

@@ -10,6 +10,7 @@ import {
 } from "../../services/pages.js";
 import { enqueueWebhookEvent } from "../../services/webhooks.js";
 import { logAudit } from "../../services/audit.js";
+import { pool } from "../../db/pool.js";
 
 const pageSchema = z
   .object({
@@ -56,10 +57,22 @@ pagesRouter.get("/slug/:slug", async (req, res) => {
 pagesRouter.post("/", requireEditor, async (req, res) => {
   const input = pageSchema.parse(req.body);
   const result = await createOrUpdatePage(null, input, req.user!.id);
+  const workspace = await pool.query(`SELECT key FROM spaces WHERE id = $1`, [input.spaceId]);
+  const actor = {
+    id: req.user!.id,
+    name: req.user!.displayName,
+    email: req.user!.email
+  };
   await logAudit(req.user!.id, "page.create", "page", result.pageId, { slug: result.slug });
-  await enqueueWebhookEvent("page.created", { pageId: result.pageId, slug: result.slug });
+  await enqueueWebhookEvent("page.created", { pageId: result.pageId, slug: result.slug }, {
+    actor,
+    workspaceId: workspace.rows[0]?.key ?? null
+  });
   if (input.state === "published") {
-    await enqueueWebhookEvent("page.published", { pageId: result.pageId, slug: result.slug });
+    await enqueueWebhookEvent("page.published", { pageId: result.pageId, slug: result.slug }, {
+      actor,
+      workspaceId: workspace.rows[0]?.key ?? null
+    });
   }
   return res.status(201).json(result);
 });
@@ -67,8 +80,16 @@ pagesRouter.post("/", requireEditor, async (req, res) => {
 pagesRouter.put("/:pageId", requireEditor, async (req, res) => {
   const input = pageSchema.parse(req.body);
   const result = await createOrUpdatePage(req.params.pageId, input, req.user!.id);
+  const workspace = await pool.query(`SELECT key FROM spaces WHERE id = $1`, [input.spaceId]);
   await logAudit(req.user!.id, "page.update", "page", req.params.pageId, { slug: result.slug });
-  await enqueueWebhookEvent("page.updated", { pageId: req.params.pageId, slug: result.slug });
+  await enqueueWebhookEvent("page.updated", { pageId: req.params.pageId, slug: result.slug }, {
+    actor: {
+      id: req.user!.id,
+      name: req.user!.displayName,
+      email: req.user!.email
+    },
+    workspaceId: workspace.rows[0]?.key ?? null
+  });
   return res.json(result);
 });
 
@@ -89,4 +110,24 @@ pagesRouter.post("/:pageId/revisions/:revisionId/rollback", requireEditor, async
     revisionId: req.params.revisionId
   });
   return res.json(result);
+});
+
+pagesRouter.delete("/:pageId", requireEditor, async (req, res) => {
+  const existing = await pool.query(`SELECT slug, space_id FROM pages WHERE id = $1`, [req.params.pageId]);
+  if (!existing.rowCount) {
+    return res.status(404).json({ error: "Page not found" });
+  }
+
+  await pool.query(`DELETE FROM pages WHERE id = $1`, [req.params.pageId]);
+  const workspace = await pool.query(`SELECT key FROM spaces WHERE id = $1`, [existing.rows[0].space_id]);
+  await enqueueWebhookEvent("page.deleted", { pageId: req.params.pageId, slug: existing.rows[0].slug }, {
+    actor: {
+      id: req.user!.id,
+      name: req.user!.displayName,
+      email: req.user!.email
+    },
+    workspaceId: workspace.rows[0]?.key ?? null
+  });
+  await logAudit(req.user!.id, "page.delete", "page", req.params.pageId);
+  return res.status(204).send();
 });

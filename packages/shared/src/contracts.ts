@@ -37,6 +37,19 @@ export interface PageDetail extends PageSummary {
   toc: Array<{ id: string; text: string; level: number }>;
   revisionId: string;
   authorName: string;
+  source: ExternalSourceMetadata | null;
+}
+
+export interface ExternalSourceMetadata {
+  provider: "markdown_import" | "github" | "google_docs";
+  sourceUrl: string | null;
+  sourceTitle: string | null;
+  sourceBranch: string | null;
+  sourcePath: string | null;
+  sourceDocumentId: string | null;
+  importedAt: string;
+  importedBy: string | null;
+  lastSyncedAt: string | null;
 }
 
 export interface SearchResponse {
@@ -72,6 +85,54 @@ export interface AiSettings {
   provider: string;
   model: string;
   enabled: boolean;
+}
+
+export interface IntegrationSummary {
+  id: string;
+  provider: "github" | "google_docs" | "markdown_import";
+  name: string;
+  isEnabled: boolean;
+  config: Record<string, unknown>;
+  status: "configured" | "missing_credentials" | "disabled";
+  statusMessage: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ImportJobSummary {
+  id: string;
+  provider: string;
+  sourceLabel: string;
+  status: string;
+  importedCount: number;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WebhookSummary {
+  id: string;
+  name: string;
+  targetUrl: string;
+  isActive: boolean;
+  events: string[];
+  createdAt: string;
+}
+
+export interface WebhookDeliverySummary {
+  id: string;
+  eventName: string;
+  responseStatus: number | null;
+  success: boolean | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  errorMessage: string | null;
+  attemptCount: number;
+}
+
+export interface AiCitation {
+  title: string;
+  slug: string;
 }
 
 export interface PageUpsertInput {

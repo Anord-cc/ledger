@@ -10,7 +10,15 @@ searchRouter.get("/", async (req, res) => {
   const searchId = await recordSearch(query, req.user?.id ?? null, pages);
 
   if (pages.length === 0 && query.trim()) {
-    await enqueueWebhookEvent("search.no_results", { searchId, query });
+    await enqueueWebhookEvent("search.no_results", { searchId, query }, {
+      actor: req.user
+        ? {
+            id: req.user.id,
+            name: req.user.displayName,
+            email: req.user.email
+          }
+        : null
+    });
   }
 
   return res.json({
@@ -20,4 +28,3 @@ searchRouter.get("/", async (req, res) => {
     pages
   });
 });
-

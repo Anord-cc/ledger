@@ -43,7 +43,7 @@ attachmentsRouter.post("/", requireEditor, async (req, res) => {
   }
 
   if (env.STORAGE_PROVIDER !== "local") {
-    return res.status(400).json({ error: "Only local storage is enabled in this MVP" });
+    return res.status(400).json({ error: "This Ledger deployment is configured for local storage only." });
   }
 
   const buffer = Buffer.from(input.base64Data, "base64");

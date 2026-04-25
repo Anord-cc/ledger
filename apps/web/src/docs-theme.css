@@ -878,6 +878,57 @@ button:not(.button-ghost):not(.button-secondary):not(.tree-toggle):not(.space-li
   place-items: center;
 }
 
+.answer-card,
+.subpanel,
+.integration-card,
+.preview-item,
+.delivery-item {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 1rem 1.1rem;
+}
+
+.citation-list,
+.delivery-list,
+.preview-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.citation-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(36, 92, 255, 0.08);
+  color: var(--accent-strong);
+}
+
+.import-grid,
+.integration-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.import-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.integration-list {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.field-note p {
+  margin: 0;
+}
+
+.inline-button {
+  display: inline-flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
 .mobile-only {
   display: none;
 }

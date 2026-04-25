@@ -35,6 +35,14 @@ feedbackRouter.post("/", async (req, res) => {
     feedbackId: result.rows[0].id,
     pageId: input.pageId,
     helpful: input.helpful
+  }, {
+    actor: req.user
+      ? {
+          id: req.user.id,
+          name: req.user.displayName,
+          email: req.user.email
+        }
+      : null
   });
 
   await logAudit(req.user?.id ?? null, "feedback.create", "feedback", result.rows[0].id, {

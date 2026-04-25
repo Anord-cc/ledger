@@ -70,6 +70,10 @@ export async function getAdminSettingsBundle() {
     branding,
     smtp: smtp.rows[0],
     ai: ai.rows[0],
+    mcp: {
+      endpoint: `${env.LEDGER_APP_URL.replace(':5173', ':4000')}/api/mcp`,
+      authMode: "session_cookie"
+    },
     authProviders: {
       oidc: Boolean(env.OIDC_ISSUER && env.OIDC_CLIENT_ID && env.OIDC_CLIENT_SECRET),
       google: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),

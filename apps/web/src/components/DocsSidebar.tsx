@@ -150,6 +150,22 @@ export function DocsSidebar({
             <Icon name="settings" className="icon icon-sm" />
             <span>Manage</span>
           </Link>
+          <Link className="sidebar-nav__item" to="/dashboard#imports" onClick={() => closeSidebarOnMobile(onClose)}>
+            <Icon name="plus" className="icon icon-sm" />
+            <span>Imports</span>
+          </Link>
+          <Link className="sidebar-nav__item" to="/dashboard#integrations" onClick={() => closeSidebarOnMobile(onClose)}>
+            <Icon name="collection" className="icon icon-sm" />
+            <span>Integrations</span>
+          </Link>
+          <Link className="sidebar-nav__item" to="/dashboard#webhooks" onClick={() => closeSidebarOnMobile(onClose)}>
+            <Icon name="external" className="icon icon-sm" />
+            <span>Webhooks</span>
+          </Link>
+          <Link className="sidebar-nav__item" to="/dashboard#ai" onClick={() => closeSidebarOnMobile(onClose)}>
+            <Icon name="spark" className="icon icon-sm" />
+            <span>AI</span>
+          </Link>
         </nav>
 
         <section className="sidebar-section">

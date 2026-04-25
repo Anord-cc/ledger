@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { createOrUpdatePage, getPageBySlug, getPageMetadata, listSpaces } from "../../services/pages.js";
 import { searchPages } from "../../services/search.js";
+import { canEditPage } from "@ledger/shared";
 
 const toolsCallSchema = z.object({
   method: z.string(),
@@ -19,11 +20,11 @@ mcpRouter.post("/", async (req, res) => {
       id: body.id,
       result: {
         tools: [
-          { name: "search_knowledge_base", description: "Search pages visible to the caller" },
-          { name: "read_page", description: "Read a page by slug if visible to the caller" },
-          { name: "list_spaces", description: "List spaces visible to the caller" },
-          { name: "get_page_metadata", description: "Get page metadata by page id" },
-          { name: "create_draft_page", description: "Create a draft page if authorized" }
+          { name: "search_knowledge_base", description: "Search knowledge base pages visible to the current auth context and return structured page summaries." },
+          { name: "read_page", description: "Read a page by slug when the current auth context is allowed to access it." },
+          { name: "list_spaces", description: "List spaces visible to the current auth context." },
+          { name: "get_page_metadata", description: "Return non-sensitive page metadata for a visible page id." },
+          { name: "create_draft_page", description: "Create a draft page in a space when the current auth context can edit content." }
         ]
       }
     });
@@ -35,30 +36,26 @@ mcpRouter.post("/", async (req, res) => {
 
     if (name === "search_knowledge_base") {
       const result = await searchPages(String(args.query ?? ""), req.user ?? null);
-      return res.json({ id: body.id, result });
+      return res.json({ id: body.id, result: { pages: result } });
     }
 
     if (name === "read_page") {
       const result = await getPageBySlug(String(args.slug ?? ""), req.user ?? null);
-      return res.json({ id: body.id, result });
+      return res.json({ id: body.id, result: result ? { page: result } : null });
     }
 
     if (name === "list_spaces") {
       const result = await listSpaces(req.user ?? null);
-      return res.json({ id: body.id, result });
+      return res.json({ id: body.id, result: { spaces: result } });
     }
 
     if (name === "get_page_metadata") {
       const result = await getPageMetadata(String(args.pageId ?? ""), req.user ?? null);
-      return res.json({ id: body.id, result });
+      return res.json({ id: body.id, result: result ? { page: result } : null });
     }
 
     if (name === "create_draft_page") {
-      if (!req.user) {
-        return res.status(401).json({ error: "Authentication required" });
-      }
-
-      if (req.user.role === "viewer" || req.user.role === "public") {
+      if (!canEditPage(req.user ?? null)) {
         return res.status(403).json({ error: "Editor access required" });
       }
 
@@ -71,10 +68,10 @@ mcpRouter.post("/", async (req, res) => {
           visibility: "internal",
           state: "draft"
         },
-        req.user.id
+        req.user!.id
       );
 
-      return res.json({ id: body.id, result });
+      return res.json({ id: body.id, result: { page: result } });
     }
   }
 

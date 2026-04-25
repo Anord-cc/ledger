@@ -1,13 +1,15 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {})
-    }
+    headers
   });
 
   if (!response.ok) {
@@ -27,12 +29,15 @@ export const api = {
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, {
       method: "POST",
-      body: body ? JSON.stringify(body) : undefined
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined
     }),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, {
       method: "PUT",
       body: JSON.stringify(body)
+    }),
+  delete: <T>(path: string) =>
+    request<T>(path, {
+      method: "DELETE"
     })
 };
-
