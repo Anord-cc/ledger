@@ -135,36 +135,52 @@ export function DocsSidebar({
 
         <nav className="sidebar-nav" aria-label="Primary">
           <Link
-            className={`sidebar-nav__item${location.pathname === "/" ? " is-current" : ""}`}
-            to="/"
+            className={`sidebar-nav__item${location.pathname === "/search" ? " is-current" : ""}`}
+            to="/search"
             onClick={() => closeSidebarOnMobile(onClose)}
           >
-            <Icon name="home" className="icon icon-sm" />
-            <span>Overview</span>
+            <Icon name="search" className="icon icon-sm" />
+            <span>Search</span>
           </Link>
           <Link
-            className={`sidebar-nav__item${location.pathname === "/dashboard" ? " is-current" : ""}`}
-            to="/dashboard"
+            className={`sidebar-nav__item${location.pathname === "/spaces" || location.pathname.startsWith("/space/") ? " is-current" : ""}`}
+            to="/spaces"
             onClick={() => closeSidebarOnMobile(onClose)}
           >
-            <Icon name="settings" className="icon icon-sm" />
-            <span>Manage</span>
+            <Icon name="collection" className="icon icon-sm" />
+            <span>Spaces</span>
           </Link>
-          <Link className="sidebar-nav__item" to="/dashboard#imports" onClick={() => closeSidebarOnMobile(onClose)}>
+          <Link
+            className={`sidebar-nav__item${location.pathname === "/drafts" ? " is-current" : ""}`}
+            to="/drafts"
+            onClick={() => closeSidebarOnMobile(onClose)}
+          >
+            <Icon name="document" className="icon icon-sm" />
+            <span>Drafts</span>
+          </Link>
+          <Link
+            className={`sidebar-nav__item${location.pathname === "/imports" ? " is-current" : ""}`}
+            to="/imports"
+            onClick={() => closeSidebarOnMobile(onClose)}
+          >
             <Icon name="plus" className="icon icon-sm" />
             <span>Imports</span>
           </Link>
-          <Link className="sidebar-nav__item" to="/dashboard#integrations" onClick={() => closeSidebarOnMobile(onClose)}>
-            <Icon name="collection" className="icon icon-sm" />
-            <span>Integrations</span>
-          </Link>
-          <Link className="sidebar-nav__item" to="/dashboard#webhooks" onClick={() => closeSidebarOnMobile(onClose)}>
-            <Icon name="external" className="icon icon-sm" />
-            <span>Webhooks</span>
-          </Link>
-          <Link className="sidebar-nav__item" to="/dashboard#ai" onClick={() => closeSidebarOnMobile(onClose)}>
+          <Link
+            className={`sidebar-nav__item${location.pathname === "/ask-ai" ? " is-current" : ""}`}
+            to="/ask-ai"
+            onClick={() => closeSidebarOnMobile(onClose)}
+          >
             <Icon name="spark" className="icon icon-sm" />
-            <span>AI</span>
+            <span>Ask AI</span>
+          </Link>
+          <Link
+            className={`sidebar-nav__item${location.pathname.startsWith("/admin") ? " is-current" : ""}`}
+            to="/admin/general"
+            onClick={() => closeSidebarOnMobile(onClose)}
+          >
+            <Icon name="settings" className="icon icon-sm" />
+            <span>Admin</span>
           </Link>
         </nav>
 

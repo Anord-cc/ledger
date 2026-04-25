@@ -5,6 +5,7 @@ import {
   createOrUpdatePage,
   getPageBySlug,
   listPageRevisions,
+  listDraftPages,
   listPagesForSpace,
   rollbackPageRevision
 } from "../../services/pages.js";
@@ -43,6 +44,11 @@ export const pagesRouter = Router();
 
 pagesRouter.get("/space/:spaceKey", async (req, res) => {
   const pages = await listPagesForSpace(req.params.spaceKey, req.user ?? null);
+  return res.json({ pages });
+});
+
+pagesRouter.get("/drafts", requireEditor, async (req, res) => {
+  const pages = await listDraftPages(req.user ?? null);
   return res.json({ pages });
 });
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import type {
   AiCitation,
   ImportJobSummary,
@@ -11,14 +11,19 @@ import type {
   WebhookSummary
 } from "@ledger/shared";
 import { CommandSearch } from "./components/CommandSearch";
-import { DashboardView } from "./components/DashboardView";
+import { AdminConsole } from "./components/AdminConsole";
+import { AskAiPage } from "./components/AskAiPage";
+import { DraftsPage } from "./components/DraftsPage";
 import { EmptyState } from "./components/EmptyState";
 import { FeedbackForm } from "./components/FeedbackForm";
 import { Icon } from "./components/Icon";
+import { ImportsPage } from "./components/ImportsPage";
 import { PageEditor } from "./components/PageEditor";
 import { DocsSidebar } from "./components/DocsSidebar";
+import { SearchPage } from "./components/SearchPage";
 import { SearchBar } from "./components/SearchBar";
 import { ContentSkeleton, SidebarSkeleton } from "./components/Skeleton";
+import { SpacesPage } from "./components/SpacesPage";
 import { api } from "./lib/api";
 
 type BrandingResponse = {
@@ -300,7 +305,7 @@ function DocsShell({
           <div className="app-header__right">
             {user ? (
               <>
-                <Link to="/dashboard" className="button-ghost">Manage</Link>
+                <Link to="/admin/general" className="button-ghost">Admin</Link>
                 <button className="button-ghost" onClick={onLogout}>Sign out</button>
               </>
             ) : (
@@ -642,9 +647,9 @@ function PageView({
               Copy link
             </button>
             {user && (user.role === "editor" || user.role === "admin" || user.role === "owner") ? (
-              <Link to="/dashboard" className="button-secondary">
+              <Link to="/admin/general" className="button-secondary">
                 <Icon name="external" className="icon icon-sm" />
-                Edit in manage
+                Open admin
               </Link>
             ) : null}
           </div>
@@ -743,7 +748,7 @@ function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void }) {
     try {
       const response = await api.post<{ user: SessionUser }>("/api/auth/login", { email, password });
       onLogin(response.user);
-      navigate("/dashboard");
+      navigate("/spaces");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not sign in");
     }
@@ -815,7 +820,7 @@ function SetupPage({
         publicKnowledgeBaseEnabled: form.publicKnowledgeBaseEnabled
       });
 
-      navigate("/dashboard");
+      navigate("/spaces");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not initialize Ledger");
     }
@@ -913,6 +918,21 @@ function SetupPage({
         <button type="submit">Create workspace</button>
         {status ? <p className="muted">{status}</p> : null}
       </form>
+    </div>
+  );
+}
+
+function AccessDeniedPage() {
+  return (
+    <div className="stack-page">
+      <section className="panel">
+        <EmptyState
+          eyebrow="Permissions"
+          title="You do not have access to this area"
+          description="This section is limited to administrators and owners. Use the main knowledge base navigation to continue browsing documentation."
+          action={<Link to="/spaces" className="button-secondary">Back to spaces</Link>}
+        />
+      </section>
     </div>
   );
 }
@@ -1119,6 +1139,7 @@ export function App() {
   const { spaces, pagesBySpace, loading: loadingNavigation, error: navigationError } = useKnowledgeBaseData(
     Boolean(setupStatus?.isInitialized)
   );
+  const canAdmin = user?.role === "admin" || user?.role === "owner";
 
   async function logout() {
     await api.post("/api/auth/logout");
@@ -1181,11 +1202,18 @@ export function App() {
       onLogout={logout}
     >
       <Routes>
-        <Route path="/" element={<HomePage spaces={spaces} pagesBySpace={pagesBySpace} onSearch={handleSearch} />} />
+        <Route path="/" element={<Navigate to="/spaces" replace />} />
         <Route path="/login" element={<LoginPage onLogin={setUser} />} />
+        <Route path="/search" element={<SearchPage spaces={spaces} results={searchResults} isLoading={searchLoading} onSearch={handleSearch} />} />
+        <Route path="/spaces" element={<SpacesPage spaces={spaces} pagesBySpace={pagesBySpace} />} />
+        <Route path="/drafts" element={<DraftsPage user={user} spaces={spaces} />} />
+        <Route path="/imports" element={<ImportsPage user={user} spaces={spaces} />} />
+        <Route path="/ask-ai" element={<AskAiPage />} />
         <Route path="/space/:spaceKey" element={<SpacePage spaces={spaces} pagesBySpace={pagesBySpace} />} />
         <Route path="/page/:slug" element={<PageView spaces={spaces} pagesBySpace={pagesBySpace} user={user} />} />
-        <Route path="/dashboard" element={user ? <DashboardView user={user} spaces={spaces} /> : <LoginPage onLogin={setUser} />} />
+        <Route path="/dashboard" element={<Navigate to="/admin/general" replace />} />
+        <Route path="/admin" element={user ? (canAdmin ? <Navigate to="/admin/general" replace /> : <AccessDeniedPage />) : <LoginPage onLogin={setUser} />} />
+        <Route path="/admin/:section" element={user ? (canAdmin ? <AdminConsole user={user} spaces={spaces} /> : <AccessDeniedPage />) : <LoginPage onLogin={setUser} />} />
       </Routes>
     </DocsShell>
   );

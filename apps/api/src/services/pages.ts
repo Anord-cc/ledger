@@ -193,6 +193,37 @@ export async function listPagesForSpace(spaceKey: string, user: SessionUser | nu
   return pages;
 }
 
+export async function listDraftPages(user: SessionUser | null) {
+  if (!user) {
+    return [];
+  }
+
+  const result = await pool.query(
+    `
+      SELECT
+        p.id, p.space_id, p.title, p.slug, p.excerpt, p.visibility, p.state, p.is_public,
+        p.parent_page_id, p.updated_at, pr.id AS revision_id, pr.body_markdown,
+        COALESCE(u.display_name, 'Unknown') AS author_name
+      FROM pages p
+      JOIN page_revisions pr ON pr.id = p.current_revision_id
+      LEFT JOIN users u ON u.id = pr.edited_by_user_id
+      WHERE p.state = 'draft'
+      ORDER BY p.updated_at DESC
+    `
+  );
+
+  const drafts: PageSummary[] = [];
+  for (const row of result.rows as PageRecord[]) {
+    const permissions = await getPagePermissions(row.id);
+    if (!canReadVisibility(user, row.visibility, permissions.roleKeys, permissions.groupIds)) {
+      continue;
+    }
+    drafts.push(toSummary(row, await getPageTags(row.id)));
+  }
+
+  return drafts;
+}
+
 export async function getPageBySlug(slug: string, user: SessionUser | null): Promise<PageDetail | null> {
   const result = await pool.query(
     `

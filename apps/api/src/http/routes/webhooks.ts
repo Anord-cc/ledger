@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "../middleware/auth.js";
 import { pool } from "../../db/pool.js";
 import { logAudit } from "../../services/audit.js";
+import { enqueueWebhookEvent } from "../../services/webhooks.js";
 
 const webhookSchema = z.object({
   name: z.string().min(2),
@@ -18,6 +19,10 @@ const webhookSchema = z.object({
     "search.no_results"
   ])).min(1),
   isActive: z.boolean().default(true)
+});
+
+const webhookUpdateSchema = webhookSchema.extend({
+  signingSecret: z.string().optional()
 });
 
 export const webhooksRouter = Router();
@@ -58,7 +63,13 @@ webhooksRouter.post("/", async (req, res) => {
 });
 
 webhooksRouter.put("/:webhookId", async (req, res) => {
-  const input = webhookSchema.parse(req.body);
+  const input = webhookUpdateSchema.parse(req.body);
+  const existing = await pool.query(`SELECT signing_secret FROM webhooks WHERE id = $1`, [req.params.webhookId]);
+  if (!existing.rowCount) {
+    return res.status(404).json({ error: "Webhook not found" });
+  }
+
+  const signingSecret = input.signingSecret?.trim() ? input.signingSecret : existing.rows[0].signing_secret;
   const updated = await pool.query(
     `
       UPDATE webhooks
@@ -70,15 +81,11 @@ webhooksRouter.put("/:webhookId", async (req, res) => {
       req.params.webhookId,
       input.name,
       input.targetUrl,
-      input.signingSecret,
+      signingSecret,
       JSON.stringify(input.events),
       input.isActive
     ]
   );
-
-  if (!updated.rowCount) {
-    return res.status(404).json({ error: "Webhook not found" });
-  }
 
   await logAudit(req.user!.id, "webhook.update", "webhook", req.params.webhookId, {
     events: input.events
@@ -110,4 +117,30 @@ webhooksRouter.delete("/:webhookId", async (req, res) => {
 
   await logAudit(req.user!.id, "webhook.delete", "webhook", req.params.webhookId);
   return res.status(204).send();
+});
+
+webhooksRouter.post("/:webhookId/test", async (req, res) => {
+  const webhook = await pool.query(`SELECT id FROM webhooks WHERE id = $1`, [req.params.webhookId]);
+  if (!webhook.rowCount) {
+    return res.status(404).json({ error: "Webhook not found" });
+  }
+
+  await enqueueWebhookEvent(
+    "page.updated",
+    {
+      pageId: "test-page",
+      slug: "webhook-test",
+      test: true
+    },
+    {
+      actor: {
+        id: req.user!.id,
+        name: req.user!.displayName,
+        email: req.user!.email
+      },
+      workspaceId: "test-workspace"
+    }
+  );
+
+  return res.status(202).json({ queued: true });
 });

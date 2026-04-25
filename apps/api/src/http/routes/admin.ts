@@ -63,3 +63,23 @@ adminRouter.get("/search-analytics", async (_req, res) => {
   });
 });
 
+adminRouter.get("/activity", async (_req, res) => {
+  const result = await pool.query(
+    `
+      SELECT
+        al.id,
+        al.action,
+        al.resource_type,
+        al.resource_id,
+        al.metadata,
+        al.created_at,
+        COALESCE(u.display_name, 'System') AS actor_name
+      FROM audit_logs al
+      LEFT JOIN users u ON u.id = al.actor_user_id
+      ORDER BY al.created_at DESC
+      LIMIT 100
+    `
+  );
+
+  return res.json({ activity: result.rows });
+});

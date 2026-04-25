@@ -49,7 +49,7 @@ const googleDocsSchema = z.object({
 
 export const integrationsRouter = Router();
 
-integrationsRouter.get("/", requireAdmin, async (_req, res) => {
+integrationsRouter.get("/", requireEditor, async (_req, res) => {
   return res.json({ integrations: await listIntegrations() });
 });
 
@@ -60,7 +60,7 @@ integrationsRouter.put("/:provider", requireAdmin, async (req, res) => {
   return res.json({ integration });
 });
 
-integrationsRouter.get("/import-jobs", requireAdmin, async (_req, res) => {
+integrationsRouter.get("/import-jobs", requireEditor, async (_req, res) => {
   return res.json({ jobs: await listImportJobs() });
 });
 
