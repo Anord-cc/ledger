@@ -313,6 +313,7 @@ export function AdminConsole({ user, spaces }: { user: SessionUser; spaces: Spac
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar panel">
+        <Link to="/spaces" className="admin-backlink">Back to app</Link>
         <div className="panel__header">
           <div>
             <p className="eyebrow">Admin</p>

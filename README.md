@@ -78,6 +78,47 @@ Services:
 
 On first boot, open the frontend and complete the setup wizard.
 
+## Updating a VM install
+
+Ledger now includes an in-place updater so you do not need to reflash the VM for every change.
+
+Directly on the VM:
+
+```bash
+cd /opt/ledger
+./infra/scripts/vm-update.sh
+```
+
+Optional flags:
+
+- `APP_DIR=/opt/ledger`
+- `BRANCH=main`
+- `REPO_URL=https://github.com/Anord-cc/ledger.git`
+- `FORCE_RESET=1`
+
+What the updater does:
+
+- Clones Ledger if the VM does not have the repo yet
+- Pulls the selected Git branch
+- Preserves `.env`, uploads, and Docker volumes
+- Pulls base container images
+- Runs the shared dependency bootstrap once
+- Restarts Postgres, Redis, API, web, and worker services
+
+By default the Linux updater refuses to overwrite local repo changes on the VM. If you intentionally want the VM to match Git exactly, rerun with `FORCE_RESET=1`.
+
+### Optional VM command install
+
+If you want a single server command instead of changing into the repo first:
+
+```bash
+cd /opt/ledger
+./infra/scripts/install-vm-updater.sh
+ledger-update
+```
+
+That installs `/usr/local/bin/ledger-update`, which runs the same in-place update flow with sensible defaults.
+
 ## Without Docker
 
 ```bash
