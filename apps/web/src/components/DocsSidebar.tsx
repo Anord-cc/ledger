@@ -95,6 +95,7 @@ export function DocsSidebar({
   currentSpaceKey,
   currentSlug,
   user,
+  preferences,
   isOpen,
   onClose
 }: {
@@ -103,11 +104,13 @@ export function DocsSidebar({
   currentSpaceKey?: string;
   currentSlug?: string;
   user: { displayName: string; role: string } | null;
+  preferences: { compactSidebar: boolean };
   isOpen: boolean;
   onClose: () => void;
 }) {
   const location = useLocation();
   const [collapsedSpaces, setCollapsedSpaces] = useState<Record<string, boolean>>({});
+  const accountTarget = user ? "/preferences/profile" : "/login";
 
   const recentPages = useMemo(
     () =>
@@ -121,7 +124,7 @@ export function DocsSidebar({
   return (
     <>
       <div className={`sidebar-overlay${isOpen ? " is-open" : ""}`} onClick={onClose} />
-      <aside className={`sidebar${isOpen ? " is-open" : ""}`}>
+      <aside className={`sidebar${isOpen ? " is-open" : ""}${preferences.compactSidebar ? " is-compact" : ""}`}>
         <div className="sidebar__top">
           <div className="sidebar__brand">
             <span className="sidebar__brand-mark">L</span>
@@ -240,7 +243,7 @@ export function DocsSidebar({
                       <Icon name="collection" className="icon icon-sm" />
                       {space.name}
                     </span>
-                    <span className={`badge badge-${space.visibility}`}>{space.visibility}</span>
+            <span className={`badge badge-${space.visibility}`}>{space.visibility}</span>
                   </button>
 
                   {!isCollapsed ? (
@@ -265,13 +268,13 @@ export function DocsSidebar({
         </section>
 
         <div className="sidebar__footer">
-          <div className="sidebar__account">
+          <Link to={accountTarget} className={`sidebar__account${location.pathname.startsWith("/preferences") ? " is-current" : ""}`} onClick={() => closeSidebarOnMobile(onClose)}>
             <div className="sidebar__avatar">{user ? user.displayName.slice(0, 1).toUpperCase() : "P"}</div>
             <div className="sidebar__account-body">
               <strong>{user?.displayName ?? "Public visitor"}</strong>
               <span>{user?.role ?? "public"}</span>
             </div>
-          </div>
+          </Link>
         </div>
       </aside>
     </>

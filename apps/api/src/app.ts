@@ -72,6 +72,7 @@ export function createApp() {
   app.use("/api/webhooks", webhooksRouter);
   app.use("/api/integrations", integrationsRouter);
   app.use("/api/ai", aiRouter);
+  app.use("/mcp", mcpRouter);
   app.use("/api/mcp", mcpRouter);
 
   app.use(errorHandler);

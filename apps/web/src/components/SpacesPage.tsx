@@ -87,6 +87,26 @@ export function SpacesPage({
               );
             })}
           </section>
+
+          <section className="content-section home-collections">
+            <div className="section-head">
+              <div>
+                <p className="eyebrow">Quick access</p>
+                <h3>Collections</h3>
+              </div>
+            </div>
+            <div className="collection-list">
+              {spaces.map((space) => (
+                <Link key={space.id} to={`/space/${space.key}`} className="collection-list__item">
+                  <div className="collection-list__body">
+                    <strong>{space.name}</strong>
+                    <p>{(pagesBySpace[space.key] ?? []).length} documents</p>
+                  </div>
+                  <span className={`badge badge-${space.visibility}`}>{space.visibility}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
         </>
       )}
     </div>

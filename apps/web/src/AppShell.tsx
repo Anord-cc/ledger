@@ -19,6 +19,7 @@ import { FeedbackForm } from "./components/FeedbackForm";
 import { Icon } from "./components/Icon";
 import { ImportsPage } from "./components/ImportsPage";
 import { PageEditor } from "./components/PageEditor";
+import { PreferencesPage, type PreferencesState } from "./components/PreferencesPage";
 import { DocsSidebar } from "./components/DocsSidebar";
 import { SearchPage } from "./components/SearchPage";
 import { SearchBar } from "./components/SearchBar";
@@ -54,6 +55,19 @@ type Space = {
 
 type PageRecordMap = Record<string, PageSummary[]>;
 type AdminFeedback = Array<{ id: string; page_title: string; helpful: boolean; comment: string | null }>;
+
+function readStoredPreference<T>(key: string, fallback: T, parse?: (raw: string) => T): T {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  const value = window.localStorage.getItem(key);
+  if (!value) {
+    return fallback;
+  }
+
+  return parse ? parse(value) : (value as T);
+}
 
 function useSession() {
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -216,6 +230,7 @@ function DocsShell({
   searchLoading,
   onSearch,
   onLogout,
+  preferences,
   children
 }: {
   branding: BrandingResponse["branding"] | null;
@@ -228,6 +243,7 @@ function DocsShell({
   searchLoading: boolean;
   onSearch: (query: string) => void;
   onLogout: () => Promise<void>;
+  preferences: PreferencesState;
   children: React.ReactNode;
 }) {
   const location = useLocation();
@@ -294,6 +310,7 @@ function DocsShell({
           currentSpaceKey={currentSpace?.key}
           currentSlug={currentPageSlug}
           user={user ? { displayName: user.displayName, role: user.role } : null}
+          preferences={preferences}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
@@ -1136,11 +1153,30 @@ export function App() {
   const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [searchResults, setSearchResults] = useState<PageSummary[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [preferences, setPreferences] = useState<PreferencesState>(() => ({
+    theme: readStoredPreference<PreferencesState["theme"]>("ledger.theme", "system"),
+    compactSidebar: readStoredPreference("ledger.compactSidebar", false, (raw) => raw === "true"),
+    emailNotifications: readStoredPreference("ledger.emailNotifications", true, (raw) => raw === "true"),
+    productUpdates: readStoredPreference("ledger.productUpdates", true, (raw) => raw === "true"),
+    smartText: readStoredPreference("ledger.smartText", true, (raw) => raw === "true"),
+    showLineNumbers: readStoredPreference("ledger.showLineNumbers", true, (raw) => raw === "true")
+  }));
 
   useEffect(() => {
     api.get<BrandingResponse>("/api/settings/public").then((response) => setBranding(response.branding));
     api.get<SetupStatus>("/api/setup/status").then(setSetupStatus);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = preferences.theme;
+    document.documentElement.dataset.sidebarDensity = preferences.compactSidebar ? "compact" : "default";
+    window.localStorage.setItem("ledger.theme", preferences.theme);
+    window.localStorage.setItem("ledger.compactSidebar", String(preferences.compactSidebar));
+    window.localStorage.setItem("ledger.emailNotifications", String(preferences.emailNotifications));
+    window.localStorage.setItem("ledger.productUpdates", String(preferences.productUpdates));
+    window.localStorage.setItem("ledger.smartText", String(preferences.smartText));
+    window.localStorage.setItem("ledger.showLineNumbers", String(preferences.showLineNumbers));
+  }, [preferences]);
 
   const { spaces, pagesBySpace, loading: loadingNavigation, error: navigationError } = useKnowledgeBaseData(
     Boolean(setupStatus?.isInitialized)
@@ -1206,10 +1242,36 @@ export function App() {
       searchLoading={searchLoading}
       onSearch={handleSearch}
       onLogout={logout}
+      preferences={preferences}
     >
       <Routes>
         <Route path="/" element={<Navigate to="/spaces" replace />} />
         <Route path="/login" element={<LoginPage onLogin={setUser} />} />
+        <Route
+          path="/preferences"
+          element={
+            user ? (
+              <Navigate to="/preferences/preferences" replace />
+            ) : (
+              <LoginPage onLogin={setUser} />
+            )
+          }
+        />
+        <Route
+          path="/preferences/:section"
+          element={
+            user ? (
+              <PreferencesPage
+                user={user}
+                preferences={preferences}
+                onUpdatePreferences={(patch) => setPreferences((current) => ({ ...current, ...patch }))}
+                onLogout={logout}
+              />
+            ) : (
+              <LoginPage onLogin={setUser} />
+            )
+          }
+        />
         <Route path="/search" element={<SearchPage spaces={spaces} results={searchResults} isLoading={searchLoading} onSearch={handleSearch} />} />
         <Route path="/spaces" element={<SpacesPage spaces={spaces} pagesBySpace={pagesBySpace} />} />
         <Route path="/drafts" element={<DraftsPage user={user} spaces={spaces} />} />

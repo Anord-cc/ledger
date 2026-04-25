@@ -72,7 +72,7 @@ export async function getAdminSettingsBundle() {
     smtp: smtp.rows[0],
     ai: ai.rows[0],
     mcp: {
-      endpoint: `${env.LEDGER_APP_URL.replace(':5173', ':4000')}/api/mcp`,
+      endpoint: `${env.LEDGER_APP_URL}/mcp`,
       authMode: "session_cookie"
     },
     authProviders: {

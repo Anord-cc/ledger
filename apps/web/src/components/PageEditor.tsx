@@ -1,16 +1,33 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "../lib/api";
+import { MarkdownComposerHint } from "./MarkdownComposerHint";
 
 const emptyPage = {
   spaceId: "",
   title: "",
   slug: "",
-  bodyMarkdown: "# New page\n\nStart writing...",
+  bodyMarkdown: "",
   excerpt: "",
   visibility: "internal",
   state: "draft",
   tagNames: [] as string[]
 };
+
+function normalizeMarkdownForEmptyState(value: string) {
+  return value
+    .replace(/\u200B/g, "")
+    .replace(/\r\n/g, "\n")
+    .trim();
+}
+
+function hasMeaningfulMarkdown(value: string) {
+  const normalized = normalizeMarkdownForEmptyState(value);
+  if (!normalized) {
+    return false;
+  }
+
+  return normalized !== "# New page\n\nStart writing..." && normalized !== "Start writing...";
+}
 
 export function PageEditor({
   spaces,
@@ -29,6 +46,7 @@ export function PageEditor({
   });
   const [status, setStatus] = useState<string | null>(null);
   const isDialog = variant === "dialog";
+  const showMarkdownHelper = useMemo(() => !hasMeaningfulMarkdown(form.bodyMarkdown), [form.bodyMarkdown]);
 
   async function submit() {
     try {
@@ -131,10 +149,13 @@ export function PageEditor({
       </label>
       <label className="field">
         Markdown
+        {showMarkdownHelper ? <MarkdownComposerHint /> : null}
         <textarea
           className={`editor-textarea${isDialog ? " editor-textarea-dialog" : ""}`}
           value={form.bodyMarkdown}
           onChange={(event) => setForm((current) => ({ ...current, bodyMarkdown: event.target.value }))}
+          placeholder="Write Markdown, use / for blocks, or paste existing docs…"
+          aria-label="Document markdown body"
         />
       </label>
       <div className="panel__footer">

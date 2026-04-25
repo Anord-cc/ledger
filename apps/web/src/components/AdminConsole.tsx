@@ -8,6 +8,7 @@ import type {
   WebhookSummary
 } from "@ledger/shared";
 import { api } from "../lib/api";
+import { resolveDisplayedMcpEndpoint } from "../lib/mcp";
 import { EmptyState } from "./EmptyState";
 import { PageHeader } from "./PageHeader";
 
@@ -111,10 +112,18 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
     events: ["page.created", "page.updated"] as string[]
   });
   const [status, setStatus] = useState<string | null>(null);
+  const [mcpSettings, setMcpSettings] = useState({
+    endpoint: "/mcp",
+    authMode: "session_cookie"
+  });
 
   const currentWebhook = useMemo(
     () => webhooks.find((webhook) => webhook.id === editingWebhookId) ?? null,
     [editingWebhookId, webhooks]
+  );
+  const displayedMcpEndpoint = useMemo(
+    () => resolveDisplayedMcpEndpoint(mcpSettings.endpoint),
+    [mcpSettings.endpoint]
   );
 
   useEffect(() => {
@@ -144,6 +153,7 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
         brandColor: settingsResponse.branding.brand_color,
         publicKnowledgeBaseEnabled: settingsResponse.branding.public_knowledge_base_enabled
       });
+      setMcpSettings(settingsResponse.mcp);
       setIntegrations(integrationsResponse.integrations);
       setImportJobs(jobsResponse.jobs);
       setAiSettings((current) => ({ ...current, ...aiResponse.settings, apiKey: "" }));
@@ -726,8 +736,12 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
             </div>
             <div className="list-grid">
               <div className="list-item">
-                <strong>Status</strong>
-                <span>MCP is exposed at `/api/mcp` through the same backend service as the application.</span>
+                <strong>Hosted endpoint</strong>
+                <span>{displayedMcpEndpoint}</span>
+              </div>
+              <div className="list-item">
+                <strong>Transport</strong>
+                <span>Ledger exposes MCP on the same host it is served from, so deployed workspaces use their own domain for MCP access.</span>
               </div>
               <div className="list-item">
                 <strong>Tools</strong>
@@ -735,11 +749,15 @@ export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUs
               </div>
               <div className="list-item">
                 <strong>Auth</strong>
-                <span>MCP currently uses the active Ledger session. Dedicated API tokens are not implemented, so the UI does not claim otherwise.</span>
+                <span>MCP currently uses {mcpSettings.authMode === "session_cookie" ? "the active Ledger session cookie" : mcpSettings.authMode}. Dedicated API tokens are not implemented, so the UI does not claim otherwise.</span>
               </div>
               <div className="list-item">
                 <strong>Permission behavior</strong>
                 <span>MCP calls inherit the same backend visibility checks as page reads, search, and AI retrieval.</span>
+              </div>
+              <div className="list-item">
+                <strong>Backend compatibility</strong>
+                <span>The backend also accepts the same MCP router on its direct API service, so local development keeps working without a reverse proxy.</span>
               </div>
             </div>
           </section>

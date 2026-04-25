@@ -7,6 +7,7 @@ import type {
   WebhookSummary
 } from "@ledger/shared";
 import { api } from "../lib/api";
+import { resolveDisplayedMcpEndpoint } from "../lib/mcp";
 import { PageEditor } from "./PageEditor";
 
 type Space = {
@@ -67,6 +68,7 @@ export function DashboardView({ user, spaces }: { user: SessionUser; spaces: Spa
     visibility: "internal",
     state: "draft"
   });
+  const displayedMcpEndpoint = resolveDisplayedMcpEndpoint();
 
   async function loadAdminData() {
     if (!canAdmin) {
@@ -524,7 +526,7 @@ export function DashboardView({ user, spaces }: { user: SessionUser; spaces: Spa
                   <h3>Ledger MCP server</h3>
                 </div>
               </div>
-              <p className="muted">Endpoint: `/api/mcp`</p>
+              <p className="muted">Endpoint: {displayedMcpEndpoint}</p>
               <p className="muted">Tools: `search_knowledge_base`, `read_page`, `list_spaces`, `get_page_metadata`, `create_draft_page`</p>
               <p className="muted">Auth: same session context as the web app.</p>
             </section>
