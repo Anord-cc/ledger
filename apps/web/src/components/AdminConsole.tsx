@@ -9,7 +9,6 @@ import type {
 } from "@ledger/shared";
 import { api } from "../lib/api";
 import { EmptyState } from "./EmptyState";
-import { PageEditor } from "./PageEditor";
 import { PageHeader } from "./PageHeader";
 
 type Space = {
@@ -42,6 +41,28 @@ const adminNav = [
   ["activity", "Activity"]
 ] as const;
 
+const adminGroups = [
+  {
+    label: "Workspace",
+    items: [
+      ["general", "General"],
+      ["members", "Members"],
+      ["permissions", "Permissions"]
+    ]
+  },
+  {
+    label: "Platform",
+    items: [
+      ["integrations", "Integrations"],
+      ["webhooks", "Webhooks"],
+      ["ai", "AI Settings"],
+      ["mcp", "MCP"],
+      ["import-history", "Import History"],
+      ["activity", "Activity"]
+    ]
+  }
+] as const;
+
 const webhookEvents = [
   "page.created",
   "page.updated",
@@ -52,7 +73,7 @@ const webhookEvents = [
   "search.no_results"
 ] as const;
 
-export function AdminConsole({ user, spaces }: { user: SessionUser; spaces: Space[] }) {
+export function AdminConsole({ user: _user, spaces: _spaces }: { user: SessionUser; spaces: Space[] }) {
   const { section = "general" } = useParams();
   const currentSection = adminNav.some(([key]) => key === section) ? section : "general";
   const [brandingForm, setBrandingForm] = useState({
@@ -317,13 +338,18 @@ export function AdminConsole({ user, spaces }: { user: SessionUser; spaces: Spac
             <h3>Workspace controls</h3>
           </div>
         </div>
-        <nav className="admin-nav">
-          {adminNav.map(([key, label]) => (
-            <Link key={key} to={`/admin/${key}`} className={`admin-nav__item${currentSection === key ? " is-current" : ""}`}>
-              {label}
-            </Link>
-          ))}
-        </nav>
+        {adminGroups.map((group) => (
+          <div key={group.label} className="admin-nav-group">
+            <p className="admin-nav-group__label">{group.label}</p>
+            <nav className="admin-nav">
+              {group.items.map(([key, label]) => (
+                <Link key={key} to={`/admin/${key}`} className={`admin-nav__item${currentSection === key ? " is-current" : ""}`}>
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        ))}
       </aside>
 
       <div className="admin-content stack-page">
@@ -332,40 +358,66 @@ export function AdminConsole({ user, spaces }: { user: SessionUser; spaces: Spac
 
         {currentSection === "general" ? (
           <>
-            <section className="panel">
-              <div className="panel__header">
-                <div>
-                  <p className="eyebrow">Branding</p>
-                  <h3>Workspace identity</h3>
+            <section className="settings-section">
+              <h2 className="settings-section__title">Workspace</h2>
+
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>Site name</strong>
+                  <p>Name shown across the workspace and navigation.</p>
+                </div>
+                <div className="settings-row__control">
+                  <input value={brandingForm.siteName} onChange={(event) => setBrandingForm((current) => ({ ...current, siteName: event.target.value }))} />
                 </div>
               </div>
-              <label className="field">
-                Site name
-                <input value={brandingForm.siteName} onChange={(event) => setBrandingForm((current) => ({ ...current, siteName: event.target.value }))} />
-              </label>
-              <div className="field-grid">
-                <label className="field">
-                  Brand color
-                  <input value={brandingForm.brandColor} onChange={(event) => setBrandingForm((current) => ({ ...current, brandColor: event.target.value }))} />
-                </label>
-                <label className="field">
-                  Logo URL
+
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>Logo URL</strong>
+                  <p>Optional logo used in the workspace header.</p>
+                </div>
+                <div className="settings-row__control">
                   <input value={brandingForm.logoUrl} onChange={(event) => setBrandingForm((current) => ({ ...current, logoUrl: event.target.value }))} />
+                </div>
+              </div>
+
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>Brand color</strong>
+                  <p>Primary accent used for actions and highlights.</p>
+                </div>
+                <div className="settings-row__control">
+                  <input value={brandingForm.brandColor} onChange={(event) => setBrandingForm((current) => ({ ...current, brandColor: event.target.value }))} />
+                </div>
+              </div>
+
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>Public knowledge base</strong>
+                  <p>Allow public visitors to read public pages without signing in.</p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={brandingForm.publicKnowledgeBaseEnabled}
+                    onChange={(event) => setBrandingForm((current) => ({ ...current, publicKnowledgeBaseEnabled: event.target.checked }))}
+                  />
+                  <span className="toggle-switch__track" />
                 </label>
               </div>
-              <div className="list-item">
-                <strong>Footer</strong>
-                <span>Powered by Ledger made by ANord.cc</span>
-              </div>
-              <label className="checkbox-row checkbox-card">
-                <input type="checkbox" checked={brandingForm.publicKnowledgeBaseEnabled} onChange={(event) => setBrandingForm((current) => ({ ...current, publicKnowledgeBaseEnabled: event.target.checked }))} />
-                <span>Public knowledge base enabled</span>
-              </label>
-              <div className="panel__footer">
-                <button onClick={saveBranding}>Save general settings</button>
+
+              <div className="settings-row">
+                <div className="settings-row__content">
+                  <strong>Footer</strong>
+                  <p>Fixed product footer shown on every page.</p>
+                </div>
+                <div className="settings-row__value">Powered by Ledger made by ANord.cc</div>
               </div>
             </section>
-            <PageEditor spaces={spaces} />
+
+            <div className="settings-actions">
+              <button onClick={saveBranding}>Save general settings</button>
+            </div>
           </>
         ) : null}
 
