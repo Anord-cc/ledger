@@ -21,14 +21,16 @@ export function SearchBar({
 
   return (
     <form className={`search-bar${compact ? " search-bar-compact" : ""}`} onSubmit={handleSubmit}>
-      <Icon name="search" className="icon" />
+      <span className="search-bar__icon">
+        <Icon name="search" className="icon" />
+      </span>
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
       />
-      <button type="submit">{compact ? "Go" : "Search"}</button>
+      <button type="submit" className="search-bar__submit">{compact ? "Go" : "Search"}</button>
     </form>
   );
 }

@@ -123,10 +123,12 @@ export function DocsSidebar({
       <div className={`sidebar-overlay${isOpen ? " is-open" : ""}`} onClick={onClose} />
       <aside className={`sidebar${isOpen ? " is-open" : ""}`}>
         <div className="sidebar__top">
-          <div>
-            <p className="eyebrow">Workspace</p>
-            <h2 className="sidebar__workspace">Ledger</h2>
-            <p className="muted">{user ? `${user.displayName} - ${user.role}` : "Public knowledge base"}</p>
+          <div className="sidebar__brand">
+            <span className="sidebar__brand-mark">L</span>
+            <div>
+              <h2 className="sidebar__workspace">Ledger</h2>
+              <p className="muted">{user ? "Documentation workspace" : "Public knowledge base"}</p>
+            </div>
           </div>
           <button type="button" className="mobile-only button-ghost" onClick={onClose} aria-label="Close navigation">
             <Icon name="chevronRight" className="icon" />
@@ -261,6 +263,16 @@ export function DocsSidebar({
             })}
           </div>
         </section>
+
+        <div className="sidebar__footer">
+          <div className="sidebar__account">
+            <div className="sidebar__avatar">{user ? user.displayName.slice(0, 1).toUpperCase() : "P"}</div>
+            <div className="sidebar__account-body">
+              <strong>{user?.displayName ?? "Public visitor"}</strong>
+              <span>{user?.role ?? "public"}</span>
+            </div>
+          </div>
+        </div>
       </aside>
     </>
   );

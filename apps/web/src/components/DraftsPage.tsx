@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { PageSummary, SessionUser } from "@ledger/shared";
 import { api } from "../lib/api";
 import { EmptyState } from "./EmptyState";
+import { Icon } from "./Icon";
 import { PageHeader } from "./PageHeader";
 
 type Space = {
@@ -43,10 +44,10 @@ export function DraftsPage({
         eyebrow="Drafts"
         title="Work in progress"
         description="Draft pages are only visible to people with the right access. Use this space to review and publish content safely."
-        actions={user && user.role !== "viewer" && user.role !== "public" ? <Link to="/admin/general" className="button-secondary">Create draft</Link> : null}
+        actions={user && user.role !== "viewer" && user.role !== "public" ? <Link to="/spaces" className="button-secondary">New draft</Link> : null}
       />
 
-      <section className="panel">
+      <section className="content-section">
         {loading ? <p className="muted">Loading drafts...</p> : null}
         {!loading && (!user || user.role === "viewer" || user.role === "public") ? (
           <EmptyState
@@ -64,14 +65,19 @@ export function DraftsPage({
           />
         ) : null}
         {!loading && drafts.length > 0 ? (
-          <div className="article-list">
+          <div className="document-feed">
             {drafts.map((page) => (
-              <Link key={page.id} to={`/page/${page.slug}`} className="article-list__item">
-                <div className="article-list__meta">
-                  <strong>{page.title}</strong>
-                  <span>{spaces.find((space) => space.id === page.spaceId)?.name ?? "Collection"}</span>
+              <Link key={page.id} to={`/page/${page.slug}`} className="document-feed__item">
+                <div className="document-feed__icon">
+                  <Icon name="document" className="icon icon-sm" />
                 </div>
-                <p>{page.excerpt ?? "Draft page without an excerpt yet."}</p>
+                <div className="document-feed__body">
+                  <strong className="document-feed__title">{page.title}</strong>
+                  <p className="document-feed__meta">
+                    {spaces.find((space) => space.id === page.spaceId)?.name ?? "Collection"} - draft
+                  </p>
+                  <p className="document-feed__excerpt">{page.excerpt ?? "Draft page without an excerpt yet."}</p>
+                </div>
               </Link>
             ))}
           </div>

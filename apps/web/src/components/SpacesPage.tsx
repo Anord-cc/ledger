@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { PageSummary } from "@ledger/shared";
 import { EmptyState } from "./EmptyState";
+import { Icon } from "./Icon";
 import { PageHeader } from "./PageHeader";
 
 type Space = {
@@ -68,17 +69,20 @@ export function SpacesPage({
             </button>
           </div>
 
-          <section className="home-stream">
+          <section className="document-feed">
             {visiblePages.map((page) => {
               const space = spaces.find((entry) => entry.id === page.spaceId);
               return (
-                <Link key={page.id} to={`/page/${page.slug}`} className="home-stream__item">
-                  <div className="home-stream__title">
-                    <strong>{page.title}</strong>
+                <Link key={page.id} to={`/page/${page.slug}`} className="document-feed__item">
+                  <div className="document-feed__icon">
+                    <Icon name="document" className="icon icon-sm" />
                   </div>
-                  <p className="home-stream__meta">
-                    Updated {new Date(page.updatedAt).toLocaleDateString()} in {space?.name ?? "Collection"} - {page.visibility}
-                  </p>
+                  <div className="document-feed__body">
+                    <strong className="document-feed__title">{page.title}</strong>
+                    <p className="document-feed__meta">
+                      Updated {new Date(page.updatedAt).toLocaleDateString()} in {space?.name ?? "Collection"} - {page.visibility}
+                    </p>
+                  </div>
                 </Link>
               );
             })}

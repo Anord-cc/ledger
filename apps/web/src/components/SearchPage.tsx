@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { PageSummary } from "@ledger/shared";
 import { EmptyState } from "./EmptyState";
+import { Icon } from "./Icon";
 import { PageHeader } from "./PageHeader";
 import { SearchBar } from "./SearchBar";
 
@@ -35,10 +36,10 @@ export function SearchPage({
       <PageHeader
         eyebrow="Search"
         title="Find answers quickly"
-        description="Search across every page you’re allowed to read. Results respect the same visibility and group rules as the rest of Ledger."
+        description="Search across every page you're allowed to read. Results respect the same visibility and group rules as the rest of Ledger."
       />
 
-      <section className="panel">
+      <section className="content-section content-section-search">
         <SearchBar
           initialQuery={query}
           onSearch={handleSearch}
@@ -46,8 +47,8 @@ export function SearchPage({
         />
       </section>
 
-      <section className="panel">
-        <div className="panel__header">
+      <section className="content-section">
+        <div className="section-head">
           <div>
             <p className="eyebrow">Results</p>
             <h3>{query ? `Results for "${query}"` : "Search results"}</h3>
@@ -71,14 +72,19 @@ export function SearchPage({
         ) : null}
 
         {!isLoading && results.length > 0 ? (
-          <div className="article-list">
+          <div className="document-feed">
             {results.map((page) => (
-              <Link key={page.id} to={`/page/${page.slug}`} className="article-list__item">
-                <div className="article-list__meta">
-                  <strong>{page.title}</strong>
-                  <span>{spaces.find((space) => space.id === page.spaceId)?.name ?? "Collection"}</span>
+              <Link key={page.id} to={`/page/${page.slug}`} className="document-feed__item">
+                <div className="document-feed__icon">
+                  <Icon name="document" className="icon icon-sm" />
                 </div>
-                <p>{page.excerpt ?? "Open this page to read more."}</p>
+                <div className="document-feed__body">
+                  <strong className="document-feed__title">{page.title}</strong>
+                  <p className="document-feed__meta">
+                    {spaces.find((space) => space.id === page.spaceId)?.name ?? "Collection"} - {page.visibility}
+                  </p>
+                  <p className="document-feed__excerpt">{page.excerpt ?? "Open this page to read more."}</p>
+                </div>
               </Link>
             ))}
           </div>
