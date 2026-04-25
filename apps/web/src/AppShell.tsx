@@ -31,10 +31,11 @@ type BrandingResponse = {
     siteName: string;
     logoUrl?: string | null;
     brandColor: string;
-    footerText: string | null;
     publicKnowledgeBaseEnabled: boolean;
   };
 };
+
+const LEDGER_FOOTER = "Powered by Ledger made by ANord.cc";
 
 type SetupStatus = {
   isInitialized: boolean;
@@ -315,7 +316,7 @@ function DocsShell({
         </header>
 
         <main className="app-content">{children}</main>
-        <footer className="app-footer">{branding?.footerText ?? "Built for fast, trusted answers."}</footer>
+        <footer className="app-footer">{LEDGER_FOOTER}</footer>
       </div>
     </div>
   );
@@ -796,7 +797,6 @@ function SetupPage({
   const [form, setForm] = useState({
     siteName: initialBranding?.site_name ?? "Ledger",
     brandColor: initialBranding?.brand_color ?? "#245cff",
-    footerText: "Built for fast, trusted answers.",
     publicKnowledgeBaseEnabled: true,
     ownerEmail: "",
     ownerDisplayName: "",
@@ -807,16 +807,12 @@ function SetupPage({
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     try {
-      const response = await api.post<{ user: SessionUser }>("/api/setup/initialize", {
-        ...form,
-        footerText: form.footerText || null
-      });
+      const response = await api.post<{ user: SessionUser }>("/api/setup/initialize", form);
 
       onInitialized(response.user, {
         siteName: form.siteName,
         logoUrl: null,
         brandColor: form.brandColor,
-        footerText: form.footerText || null,
         publicKnowledgeBaseEnabled: form.publicKnowledgeBaseEnabled
       });
 
@@ -866,14 +862,6 @@ function SetupPage({
             />
           </label>
         </div>
-
-        <label className="field">
-          Footer text
-          <input
-            value={form.footerText}
-            onChange={(event) => setForm((current) => ({ ...current, footerText: event.target.value }))}
-          />
-        </label>
 
         <label className="checkbox-row checkbox-card">
           <input
@@ -947,7 +935,6 @@ function Dashboard({ user, spaces }: { user: SessionUser; spaces: Space[] }) {
     siteName: "Ledger",
     logoUrl: "",
     brandColor: "#245cff",
-    footerText: "",
     publicKnowledgeBaseEnabled: true
   });
   const [settingsStatus, setSettingsStatus] = useState<string | null>(null);
@@ -971,7 +958,6 @@ function Dashboard({ user, spaces }: { user: SessionUser; spaces: Space[] }) {
             siteName: branding.site_name,
             logoUrl: branding.logo_url ?? "",
             brandColor: branding.brand_color,
-            footerText: branding.footer_text ?? "",
             publicKnowledgeBaseEnabled: branding.public_knowledge_base_enabled
           });
         });
@@ -984,7 +970,6 @@ function Dashboard({ user, spaces }: { user: SessionUser; spaces: Space[] }) {
         siteName: brandingForm.siteName,
         logoUrl: brandingForm.logoUrl || null,
         brandColor: brandingForm.brandColor,
-        footerText: brandingForm.footerText || null,
         publicKnowledgeBaseEnabled: brandingForm.publicKnowledgeBaseEnabled
       });
       setSettingsStatus("Brand settings saved.");
@@ -1044,13 +1029,10 @@ function Dashboard({ user, spaces }: { user: SessionUser; spaces: Space[] }) {
                 />
               </label>
             </div>
-            <label className="field">
-              Footer text
-              <input
-                value={brandingForm.footerText}
-                onChange={(event) => setBrandingForm((current) => ({ ...current, footerText: event.target.value }))}
-              />
-            </label>
+            <div className="list-item">
+              <strong>Footer</strong>
+              <span>Powered by Ledger made by ANord.cc</span>
+            </div>
             <label className="checkbox-row checkbox-card">
               <input
                 type="checkbox"

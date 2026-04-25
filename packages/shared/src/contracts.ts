@@ -69,7 +69,6 @@ export interface BrandingSettings {
   siteName: string;
   logoUrl: string | null;
   brandColor: string;
-  footerText: string | null;
   publicKnowledgeBaseEnabled: boolean;
 }
 

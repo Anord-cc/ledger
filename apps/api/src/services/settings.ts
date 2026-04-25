@@ -1,6 +1,8 @@
 import { env } from "../config/env.js";
 import { pool } from "../db/pool.js";
 
+const FIXED_FOOTER = "Powered by Ledger made by ANord.cc";
+
 export async function getBrandingSettings() {
   const result = await pool.query(`SELECT * FROM branding_settings ORDER BY created_at ASC LIMIT 1`);
   return (
@@ -9,7 +11,7 @@ export async function getBrandingSettings() {
       site_name: "Ledger",
       logo_url: null,
       brand_color: "#245cff",
-      footer_text: "Built for fast, trusted answers.",
+      footer_text: FIXED_FOOTER,
       public_knowledge_base_enabled: true
     }
   );
@@ -19,7 +21,6 @@ export async function upsertBrandingSettings(input: {
   siteName: string;
   logoUrl: string | null;
   brandColor: string;
-  footerText: string | null;
   publicKnowledgeBaseEnabled: boolean;
 }) {
   const existing = await getBrandingSettings();
@@ -37,7 +38,7 @@ export async function upsertBrandingSettings(input: {
         input.siteName,
         input.logoUrl,
         input.brandColor,
-        input.footerText,
+        FIXED_FOOTER,
         input.publicKnowledgeBaseEnabled
       ]
     );
@@ -54,7 +55,7 @@ export async function upsertBrandingSettings(input: {
       input.siteName,
       input.logoUrl,
       input.brandColor,
-      input.footerText,
+      FIXED_FOOTER,
       input.publicKnowledgeBaseEnabled
     ]
   );

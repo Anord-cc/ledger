@@ -59,7 +59,6 @@ export function AdminConsole({ user, spaces }: { user: SessionUser; spaces: Spac
     siteName: "Ledger",
     logoUrl: "",
     brandColor: "#245cff",
-    footerText: "",
     publicKnowledgeBaseEnabled: true
   });
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -122,7 +121,6 @@ export function AdminConsole({ user, spaces }: { user: SessionUser; spaces: Spac
         siteName: settingsResponse.branding.site_name,
         logoUrl: settingsResponse.branding.logo_url ?? "",
         brandColor: settingsResponse.branding.brand_color,
-        footerText: settingsResponse.branding.footer_text ?? "",
         publicKnowledgeBaseEnabled: settingsResponse.branding.public_knowledge_base_enabled
       });
       setIntegrations(integrationsResponse.integrations);
@@ -188,7 +186,6 @@ export function AdminConsole({ user, spaces }: { user: SessionUser; spaces: Spac
         siteName: brandingForm.siteName,
         logoUrl: brandingForm.logoUrl || null,
         brandColor: brandingForm.brandColor,
-        footerText: brandingForm.footerText || null,
         publicKnowledgeBaseEnabled: brandingForm.publicKnowledgeBaseEnabled
       });
       setStatus("General settings saved.");
@@ -356,10 +353,10 @@ export function AdminConsole({ user, spaces }: { user: SessionUser; spaces: Spac
                   <input value={brandingForm.logoUrl} onChange={(event) => setBrandingForm((current) => ({ ...current, logoUrl: event.target.value }))} />
                 </label>
               </div>
-              <label className="field">
-                Footer text
-                <input value={brandingForm.footerText} onChange={(event) => setBrandingForm((current) => ({ ...current, footerText: event.target.value }))} />
-              </label>
+              <div className="list-item">
+                <strong>Footer</strong>
+                <span>Powered by Ledger made by ANord.cc</span>
+              </div>
               <label className="checkbox-row checkbox-card">
                 <input type="checkbox" checked={brandingForm.publicKnowledgeBaseEnabled} onChange={(event) => setBrandingForm((current) => ({ ...current, publicKnowledgeBaseEnabled: event.target.checked }))} />
                 <span>Public knowledge base enabled</span>

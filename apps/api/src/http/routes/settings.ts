@@ -8,7 +8,6 @@ const brandingSchema = z.object({
   siteName: z.string().min(2),
   logoUrl: z.string().url().nullable(),
   brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  footerText: z.string().max(200).nullable(),
   publicKnowledgeBaseEnabled: z.boolean()
 });
 
@@ -21,7 +20,6 @@ settingsRouter.get("/public", async (_req, res) => {
       siteName: branding.site_name,
       logoUrl: branding.logo_url,
       brandColor: branding.brand_color,
-      footerText: branding.footer_text,
       publicKnowledgeBaseEnabled: branding.public_knowledge_base_enabled
     }
   });
@@ -38,4 +36,3 @@ settingsRouter.put("/branding", requireAdmin, async (req, res) => {
   await logAudit(req.user!.id, "settings.branding.update", "branding_settings", updated.id);
   return res.json(updated);
 });
-

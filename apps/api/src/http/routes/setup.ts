@@ -6,7 +6,6 @@ import { initializeLedger, getSetupStatus } from "../../services/setup.js";
 const setupSchema = z.object({
   siteName: z.string().min(2),
   brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  footerText: z.string().max(200).nullable(),
   publicKnowledgeBaseEnabled: z.boolean(),
   ownerEmail: z.string().email(),
   ownerDisplayName: z.string().min(2),

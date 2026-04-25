@@ -2,10 +2,11 @@ import { hashPassword, createSessionToken, getUserForSession } from "./auth.js";
 import { logAudit } from "./audit.js";
 import { pool } from "../db/pool.js";
 
+const FIXED_FOOTER = "Powered by Ledger made by ANord.cc";
+
 interface SetupInput {
   siteName: string;
   brandColor: string;
-  footerText: string | null;
   publicKnowledgeBaseEnabled: boolean;
   ownerEmail: string;
   ownerDisplayName: string;
@@ -51,7 +52,7 @@ export async function initializeLedger(input: SetupInput) {
         WHERE id = (SELECT id FROM branding_settings ORDER BY created_at ASC LIMIT 1)
         RETURNING id
       `,
-      [input.siteName, input.brandColor, input.footerText, input.publicKnowledgeBaseEnabled]
+      [input.siteName, input.brandColor, FIXED_FOOTER, input.publicKnowledgeBaseEnabled]
     );
 
     await pool.query(
