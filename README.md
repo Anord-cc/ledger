@@ -13,7 +13,7 @@ This repository currently ships a real MVP foundation:
 
 ## Fresh install behavior
 
-Ledger no longer assumes demo accounts on a normal install.
+Ledger starts with real setup, not demo accounts.
 
 - `docker compose up` now runs a single `bootstrap` container that installs dependencies once into a shared Docker volume
 - PostgreSQL and Redis stay internal to the Compose network by default
@@ -22,7 +22,7 @@ Ledger no longer assumes demo accounts on a normal install.
   - the site name and brand color
   - the footer text
   - the initial public knowledge base toggle
-- Demo users and sample content are only created when `LEDGER_ENABLE_DEMO_SEED=true`
+- After setup, the instance is ready for real configuration, integrations, and content
 
 ## Monorepo layout
 
@@ -76,7 +76,7 @@ Services:
 - Postgres: internal-only in Docker Compose
 - Redis: internal-only in Docker Compose
 
-On first boot, open the frontend and complete the setup wizard instead of using a pre-seeded admin login.
+On first boot, open the frontend and complete the setup wizard.
 
 ## Without Docker
 
@@ -88,21 +88,6 @@ npm run dev:api
 npm run dev:web
 npm run dev:worker
 ```
-
-## Optional demo seed
-
-If you want the old demo-style experience with seeded users and pages:
-
-```bash
-LEDGER_ENABLE_DEMO_SEED=true
-```
-
-All demo users use password `Password123!`.
-
-- `owner@ledger.local`
-- `admin@ledger.local`
-- `editor@ledger.local`
-- `viewer@ledger.local`
 
 ## Important endpoints
 
