@@ -231,11 +231,14 @@ function DocsShell({
   children: React.ReactNode;
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const currentPageSlug = location.pathname.startsWith("/page/")
     ? decodeURIComponent(location.pathname.split("/page/")[1] ?? "")
     : undefined;
+  const canCreate = user?.role === "editor" || user?.role === "admin" || user?.role === "owner";
 
   useCommandShortcut(() => setSearchOpen(true));
 
@@ -261,6 +264,22 @@ function DocsShell({
         results={searchResults}
         isLoading={searchLoading}
       />
+      {createOpen ? (
+        <>
+          <div className="command-palette__overlay is-open" onClick={() => setCreateOpen(false)} />
+          <div className="editor-modal" role="dialog" aria-modal="true" aria-label="Create document">
+            <PageEditor
+              spaces={spaces}
+              variant="dialog"
+              onCancel={() => setCreateOpen(false)}
+              onCreated={(slug) => {
+                setCreateOpen(false);
+                navigate(`/page/${slug}`);
+              }}
+            />
+          </div>
+        </>
+      ) : null}
 
       {loadingNavigation ? (
         <SidebarSkeleton />
@@ -306,6 +325,11 @@ function DocsShell({
           <div className="app-header__right">
             {user ? (
               <>
+                {canCreate ? (
+                  <button type="button" className="button-primary" onClick={() => setCreateOpen(true)}>
+                    New doc
+                  </button>
+                ) : null}
                 <Link to="/admin/general" className="button-ghost">Admin</Link>
                 <button className="button-ghost" onClick={onLogout}>Sign out</button>
               </>

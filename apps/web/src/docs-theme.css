@@ -127,6 +127,18 @@ a:focus {
   background: transparent;
 }
 
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-sm);
+  padding: 0.62rem 0.9rem;
+  background: var(--brand);
+  color: #111318;
+  font-weight: 600;
+}
+
 button:not(.button-ghost):not(.button-secondary):not(.tree-toggle):not(.space-link):not(.collection-card):not(.search-launcher):not(.home-tab) {
   border-radius: var(--radius-sm);
   padding: 0.78rem 1rem;
@@ -400,6 +412,31 @@ button:not(.button-ghost):not(.button-secondary):not(.tree-toggle):not(.space-li
   color: var(--text);
 }
 
+.editor-modal {
+  position: fixed;
+  top: 5vh;
+  left: 50%;
+  width: min(820px, calc(100% - 2rem));
+  max-height: 88vh;
+  transform: translateX(-50%);
+  z-index: 31;
+  overflow: auto;
+}
+
+.editor-dialog {
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  padding: 1.1rem 1.1rem 1rem;
+}
+
+.editor-textarea {
+  min-height: 320px;
+}
+
+.editor-textarea-dialog {
+  min-height: 420px;
+}
+
 .search-launcher kbd {
   border: 1px solid var(--line-strong);
   border-radius: 3px;
@@ -463,6 +500,12 @@ button:not(.button-ghost):not(.button-secondary):not(.tree-toggle):not(.space-li
   gap: 0.2rem;
   padding: 0.95rem 0;
   border-bottom: 1px solid var(--line);
+  transition: color 140ms ease, border-color 140ms ease;
+}
+
+.home-stream__item:hover {
+  color: #ffffff;
+  border-bottom-color: var(--line-strong);
 }
 
 .home-stream__title {
@@ -491,7 +534,7 @@ button:not(.button-ghost):not(.button-secondary):not(.tree-toggle):not(.space-li
 .setup-form {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: transparent;
+  background: #10141a;
 }
 
 .overview-hero,
@@ -503,12 +546,18 @@ button:not(.button-ghost):not(.button-secondary):not(.tree-toggle):not(.space-li
   padding: 1.05rem 1.1rem;
 }
 
+.doc-card {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
 .overview-hero {
   display: grid;
   grid-template-columns: 1.2fr 0.9fr;
   gap: 1rem;
   align-items: end;
-  background: var(--bg-elevated);
+  background: transparent;
 }
 
 .overview-hero h1,
@@ -628,6 +677,7 @@ button:not(.button-ghost):not(.button-secondary):not(.tree-toggle):not(.space-li
   padding: 0.9rem 0 0.9rem 1rem;
   border: 0;
   border-left: 1px solid var(--line);
+  background: transparent;
 }
 
 .toc-rail a {
@@ -1101,6 +1151,15 @@ button:not(.button-ghost):not(.button-secondary):not(.tree-toggle):not(.space-li
 .list-grid {
   display: grid;
   gap: 1rem;
+}
+
+.admin-content > .panel {
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .settings-section {

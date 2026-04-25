@@ -12,12 +12,23 @@ const emptyPage = {
   tagNames: [] as string[]
 };
 
-export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: string; key: string }> }) {
+export function PageEditor({
+  spaces,
+  variant = "panel",
+  onCreated,
+  onCancel
+}: {
+  spaces: Array<{ id: string; name: string; key: string }>;
+  variant?: "panel" | "dialog";
+  onCreated?: (slug: string) => void;
+  onCancel?: () => void;
+}) {
   const [form, setForm] = useState({
     ...emptyPage,
     spaceId: spaces[0]?.id ?? ""
   });
   const [status, setStatus] = useState<string | null>(null);
+  const isDialog = variant === "dialog";
 
   async function submit() {
     try {
@@ -31,17 +42,18 @@ export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: strin
         ...emptyPage,
         spaceId: spaces[0]?.id ?? ""
       });
+      onCreated?.(result.slug);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not save page");
     }
   }
 
   return (
-    <section className="panel">
+    <section className={isDialog ? "editor-dialog" : "panel"}>
       <div className="panel__header">
         <div>
           <p className="eyebrow">Publishing</p>
-          <h3>Create a new page</h3>
+          <h3>{isDialog ? "New document" : "Create a new page"}</h3>
         </div>
         <span className="pill">Editor</span>
       </div>
@@ -120,13 +132,18 @@ export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: strin
       <label className="field">
         Markdown
         <textarea
-          className="editor-textarea"
+          className={`editor-textarea${isDialog ? " editor-textarea-dialog" : ""}`}
           value={form.bodyMarkdown}
           onChange={(event) => setForm((current) => ({ ...current, bodyMarkdown: event.target.value }))}
         />
       </label>
       <div className="panel__footer">
-        <button onClick={submit}>Publish draft</button>
+        <button onClick={submit}>Create draft</button>
+        {onCancel ? (
+          <button type="button" className="button-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+        ) : null}
         {status ? <p className="muted">{status}</p> : null}
       </div>
     </section>
