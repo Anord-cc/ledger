@@ -61,6 +61,23 @@ describe("http flows", () => {
     expect(response.headers["set-cookie"]).toBeTruthy();
   });
 
+  it("blocks register before initial setup is completed", async () => {
+    queryMock.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ count: 0 }]
+    });
+
+    const { createApp } = await import("../app.js");
+    const response = await request(createApp()).post("/api/auth/register").send({
+      email: "first@example.com",
+      password: "Password123!",
+      displayName: "First User"
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toContain("initial Ledger setup");
+  });
+
   it("creates feedback records", async () => {
     queryMock
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: "feedback-1" }] })

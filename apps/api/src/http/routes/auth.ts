@@ -19,6 +19,11 @@ const registerSchema = z.object({
 export const authRouter = Router();
 
 authRouter.post("/register", async (req, res) => {
+  const userCount = await pool.query(`SELECT COUNT(*)::int AS count FROM users`);
+  if (userCount.rows[0].count === 0) {
+    return res.status(403).json({ error: "Complete initial Ledger setup first" });
+  }
+
   const input = registerSchema.parse(req.body);
   const existing = await pool.query(`SELECT id FROM users WHERE email = $1`, [input.email]);
 

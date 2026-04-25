@@ -1,27 +1,41 @@
 services:
+  bootstrap:
+    image: node:20-bookworm
+    working_dir: /app
+    command: sh /app/infra/scripts/dev-bootstrap.sh
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+
   postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ledger}
       POSTGRES_USER: ${POSTGRES_USER:-ledger}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ledger}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ledger} -d ${POSTGRES_DB:-ledger}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   api:
     image: node:20-bookworm
     working_dir: /app
-    command: sh -c "npm install && npm run db:migrate && npm run db:seed && npm run dev:api"
+    command: sh -c "npm run db:migrate && npm run db:seed && npm --workspace @ledger/api run dev"
     env_file:
       - .env
     ports:
@@ -29,35 +43,50 @@ services:
     volumes:
       - .:/app
       - ./storage/uploads:/app/storage/uploads
+      - node_modules:/app/node_modules
     depends_on:
-      - postgres
-      - redis
+      bootstrap:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   web:
     image: node:20-bookworm
     working_dir: /app
-    command: sh -c "npm install && npm run dev:web -- --host 0.0.0.0"
+    command: npm --workspace @ledger/web run dev -- --host 0.0.0.0
     env_file:
       - .env
     ports:
       - "5173:5173"
     volumes:
       - .:/app
+      - node_modules:/app/node_modules
     depends_on:
-      - api
+      bootstrap:
+        condition: service_completed_successfully
+      api:
+        condition: service_started
 
   worker:
     image: node:20-bookworm
     working_dir: /app
-    command: sh -c "npm install && npm run dev:worker"
+    command: npm --workspace @ledger/worker run dev
     env_file:
       - .env
     volumes:
       - .:/app
+      - node_modules:/app/node_modules
     depends_on:
-      - api
-      - redis
+      bootstrap:
+        condition: service_completed_successfully
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   redis_data:
+  node_modules:

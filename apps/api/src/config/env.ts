@@ -7,6 +7,10 @@ const envSchema = z.object({
   LEDGER_APP_URL: z.string().url().default("http://localhost:5173"),
   DATABASE_URL: z.string().default("postgresql://ledger:ledger@localhost:5432/ledger"),
   REDIS_URL: z.string().default("redis://localhost:6379"),
+  LEDGER_ENABLE_DEMO_SEED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   JWT_SECRET: z.string().min(8).default("change-me"),
   SESSION_COOKIE_NAME: z.string().default("ledger_session"),
   PASSWORD_PEPPER: z.string().min(4).default("change-me"),
@@ -36,4 +40,3 @@ const envSchema = z.object({
 
 export const env = envSchema.parse(process.env);
 export const isProduction = env.NODE_ENV === "production";
-

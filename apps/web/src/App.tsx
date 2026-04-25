@@ -10,10 +10,19 @@ import { api } from "./lib/api";
 type BrandingResponse = {
   branding: {
     siteName: string;
+    logoUrl?: string | null;
     brandColor: string;
     footerText: string | null;
     publicKnowledgeBaseEnabled: boolean;
   };
+};
+
+type SetupStatus = {
+  isInitialized: boolean;
+  branding: {
+    site_name: string;
+    brand_color: string;
+  } | null;
 };
 
 function useSession() {
@@ -192,8 +201,8 @@ function PageView() {
 
 function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void }) {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("owner@ledger.local");
-  const [password, setPassword] = useState("Password123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function submit(event: React.FormEvent) {
@@ -223,6 +232,128 @@ function LoginPage({ onLogin }: { onLogin: (user: SessionUser) => void }) {
         <button type="submit">Sign in</button>
       </form>
       {error ? <p className="muted">{error}</p> : null}
+    </section>
+  );
+}
+
+function SetupPage({
+  onInitialized,
+  initialBranding
+}: {
+  onInitialized: (user: SessionUser, branding: BrandingResponse["branding"]) => void;
+  initialBranding: SetupStatus["branding"];
+}) {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    siteName: initialBranding?.site_name ?? "Ledger",
+    brandColor: initialBranding?.brand_color ?? "#245cff",
+    footerText: "Built for fast, trusted answers.",
+    publicKnowledgeBaseEnabled: true,
+    ownerEmail: "",
+    ownerDisplayName: "",
+    password: ""
+  });
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    try {
+      const response = await api.post<{ user: SessionUser }>("/api/setup/initialize", {
+        ...form,
+        footerText: form.footerText || null
+      });
+
+      onInitialized(response.user, {
+        siteName: form.siteName,
+        logoUrl: null,
+        brandColor: form.brandColor,
+        footerText: form.footerText || null,
+        publicKnowledgeBaseEnabled: form.publicKnowledgeBaseEnabled
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not initialize Ledger");
+    }
+  }
+
+  return (
+    <section className="setup-layout">
+      <div className="hero-card">
+        <p className="eyebrow">First-time setup</p>
+        <h1>Create your Ledger base</h1>
+        <p className="lede">
+          Set your site identity, choose whether public docs are enabled, and create the first
+          owner account. This happens once on a fresh install.
+        </p>
+      </div>
+      <form className="card stack" onSubmit={submit}>
+        <div className="split">
+          <label>
+            Site name
+            <input
+              value={form.siteName}
+              onChange={(event) => setForm((current) => ({ ...current, siteName: event.target.value }))}
+            />
+          </label>
+          <label>
+            Brand color
+            <input
+              value={form.brandColor}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, brandColor: event.target.value }))
+              }
+            />
+          </label>
+        </div>
+        <label>
+          Footer text
+          <input
+            value={form.footerText}
+            onChange={(event) => setForm((current) => ({ ...current, footerText: event.target.value }))}
+          />
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={form.publicKnowledgeBaseEnabled}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                publicKnowledgeBaseEnabled: event.target.checked
+              }))
+            }
+          />
+          Enable the public knowledge base immediately
+        </label>
+        <div className="split">
+          <label>
+            Owner name
+            <input
+              value={form.ownerDisplayName}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, ownerDisplayName: event.target.value }))
+              }
+            />
+          </label>
+          <label>
+            Owner email
+            <input
+              value={form.ownerEmail}
+              onChange={(event) => setForm((current) => ({ ...current, ownerEmail: event.target.value }))}
+            />
+          </label>
+        </div>
+        <label>
+          Password
+          <input
+            type="password"
+            value={form.password}
+            onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+          />
+        </label>
+        <button type="submit">Initialize Ledger</button>
+        {status ? <p className="muted">{status}</p> : null}
+      </form>
     </section>
   );
 }
@@ -387,9 +518,11 @@ function Dashboard({ user }: { user: SessionUser }) {
 export function App() {
   const { user, setUser, loading } = useSession();
   const [branding, setBranding] = useState<BrandingResponse["branding"] | null>(null);
+  const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
 
   useEffect(() => {
     api.get<BrandingResponse>("/api/settings/public").then((response) => setBranding(response.branding));
+    api.get<SetupStatus>("/api/setup/status").then(setSetupStatus);
   }, []);
 
   async function logout() {
@@ -397,8 +530,36 @@ export function App() {
     setUser(null);
   }
 
-  if (loading) {
+  if (loading || !setupStatus) {
     return <div className="loading-screen">Loading Ledger...</div>;
+  }
+
+  if (!setupStatus.isInitialized) {
+    return (
+      <Shell branding={branding} user={null} onLogout={logout}>
+        <Routes>
+          <Route
+            path="*"
+            element={
+              <SetupPage
+                initialBranding={setupStatus.branding}
+                onInitialized={(initializedUser, initializedBranding) => {
+                  setUser(initializedUser);
+                  setBranding(initializedBranding);
+                  setSetupStatus({
+                    isInitialized: true,
+                    branding: {
+                      site_name: initializedBranding.siteName,
+                      brand_color: initializedBranding.brandColor
+                    }
+                  });
+                }}
+              />
+            }
+          />
+        </Routes>
+      </Shell>
+    );
   }
 
   return (

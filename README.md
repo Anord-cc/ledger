@@ -11,6 +11,19 @@ This repository currently ships a real MVP foundation:
 - Docker Compose for local development
 - Basic tests for permission logic, markdown sanitization, auth helpers, search matching, webhook signing, and key HTTP flows
 
+## Fresh install behavior
+
+Ledger no longer assumes demo accounts on a normal install.
+
+- `docker compose up` now runs a single `bootstrap` container that installs dependencies once into a shared Docker volume
+- PostgreSQL and Redis stay internal to the Compose network by default
+- The first browser visit takes you to a setup screen where you create:
+  - the initial owner account
+  - the site name and brand color
+  - the footer text
+  - the initial public knowledge base toggle
+- Demo users and sample content are only created when `LEDGER_ENABLE_DEMO_SEED=true`
+
 ## Monorepo layout
 
 - `apps/web`: React frontend
@@ -60,8 +73,10 @@ Services:
 
 - Frontend: [http://localhost:5173](http://localhost:5173)
 - API: [http://localhost:4000](http://localhost:4000)
-- Postgres: `localhost:5432`
-- Redis: `localhost:6379`
+- Postgres: internal-only in Docker Compose
+- Redis: internal-only in Docker Compose
+
+On first boot, open the frontend and complete the setup wizard instead of using a pre-seeded admin login.
 
 ## Without Docker
 
@@ -74,9 +89,15 @@ npm run dev:web
 npm run dev:worker
 ```
 
-## Seeded accounts
+## Optional demo seed
 
-All seeded users use password `Password123!`.
+If you want the old demo-style experience with seeded users and pages:
+
+```bash
+LEDGER_ENABLE_DEMO_SEED=true
+```
+
+All demo users use password `Password123!`.
 
 - `owner@ledger.local`
 - `admin@ledger.local`

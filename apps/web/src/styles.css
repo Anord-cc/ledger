@@ -105,13 +105,18 @@ main {
 }
 
 .hero-layout,
-.dashboard-grid {
+.dashboard-grid,
+.setup-layout {
   display: grid;
   gap: 1.25rem;
 }
 
 .hero-layout {
   grid-template-columns: 1.2fr 1fr;
+}
+
+.setup-layout {
+  grid-template-columns: 1fr 1.1fr;
 }
 
 .grid,
@@ -285,7 +290,8 @@ main {
 @media (max-width: 900px) {
   .hero-layout,
   .grid,
-  .content-layout {
+  .content-layout,
+  .setup-layout {
     grid-template-columns: 1fr;
   }
 
