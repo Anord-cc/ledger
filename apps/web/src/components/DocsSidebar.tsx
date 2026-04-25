@@ -89,7 +89,7 @@ function TreeNode({
   );
 }
 
-export function PageSidebar({
+export function DocsSidebar({
   spaces,
   pagesBySpace,
   currentSpaceKey,
@@ -126,19 +126,27 @@ export function PageSidebar({
           <div>
             <p className="eyebrow">Workspace</p>
             <h2 className="sidebar__workspace">Ledger</h2>
-            <p className="muted">{user ? `${user.displayName} · ${user.role}` : "Public knowledge base"}</p>
+            <p className="muted">{user ? `${user.displayName} - ${user.role}` : "Public knowledge base"}</p>
           </div>
-          <button type="button" className="mobile-only button-ghost" onClick={onClose}>
+          <button type="button" className="mobile-only button-ghost" onClick={onClose} aria-label="Close navigation">
             <Icon name="chevronRight" className="icon" />
           </button>
         </div>
 
         <nav className="sidebar-nav" aria-label="Primary">
-          <Link className={`sidebar-nav__item${location.pathname === "/" ? " is-current" : ""}`} to="/">
+          <Link
+            className={`sidebar-nav__item${location.pathname === "/" ? " is-current" : ""}`}
+            to="/"
+            onClick={() => closeSidebarOnMobile(onClose)}
+          >
             <Icon name="home" className="icon icon-sm" />
             <span>Overview</span>
           </Link>
-          <Link className={`sidebar-nav__item${location.pathname === "/dashboard" ? " is-current" : ""}`} to="/dashboard">
+          <Link
+            className={`sidebar-nav__item${location.pathname === "/dashboard" ? " is-current" : ""}`}
+            to="/dashboard"
+            onClick={() => closeSidebarOnMobile(onClose)}
+          >
             <Icon name="settings" className="icon icon-sm" />
             <span>Manage</span>
           </Link>
@@ -151,7 +159,12 @@ export function PageSidebar({
           <div className="sidebar-list">
             {recentPages.length === 0 ? <p className="muted">No documents yet.</p> : null}
             {recentPages.map((page) => (
-              <Link key={page.id} to={`/page/${page.slug}`} className={`sidebar-doc${page.slug === currentSlug ? " is-current" : ""}`}>
+              <Link
+                key={page.id}
+                to={`/page/${page.slug}`}
+                className={`sidebar-doc${page.slug === currentSlug ? " is-current" : ""}`}
+                onClick={() => closeSidebarOnMobile(onClose)}
+              >
                 <Icon name="document" className="icon icon-sm" />
                 <span>{page.title}</span>
               </Link>
@@ -190,12 +203,16 @@ export function PageSidebar({
 
                   {!isCollapsed ? (
                     <div className="collection-group__body">
-                      <Link to={`/space/${space.key}`} className={`collection-link${space.key === currentSpaceKey && !currentSlug ? " is-current" : ""}`}>
+                      <Link
+                        to={`/space/${space.key}`}
+                        className={`collection-link${space.key === currentSpaceKey && !currentSlug ? " is-current" : ""}`}
+                        onClick={() => closeSidebarOnMobile(onClose)}
+                      >
                         Browse collection
                       </Link>
                       {tree.length === 0 ? <p className="muted">No published pages yet.</p> : null}
                       {tree.map((node) => (
-                        <TreeNode key={node.id} node={node} depth={0} currentSlug={currentSlug} />
+                        <TreeNode key={node.id} node={node} depth={0} currentSlug={currentSlug} onClose={onClose} />
                       ))}
                     </div>
                   ) : null}

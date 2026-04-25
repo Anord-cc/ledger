@@ -37,12 +37,15 @@ export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: strin
   }
 
   return (
-    <section className="card">
-      <div className="row">
-        <h3>Create page</h3>
+    <section className="panel">
+      <div className="panel__header">
+        <div>
+          <p className="eyebrow">Publishing</p>
+          <h3>Create a new page</h3>
+        </div>
         <span className="pill">Editor</span>
       </div>
-      <label>
+      <label className="field">
         Space
         <select
           value={form.spaceId}
@@ -55,29 +58,29 @@ export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: strin
           ))}
         </select>
       </label>
-      <label>
+      <label className="field">
         Title
         <input
           value={form.title}
           onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
         />
       </label>
-      <label>
+      <label className="field">
         Slug
         <input
           value={form.slug}
           onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
         />
       </label>
-      <label>
+      <label className="field">
         Excerpt
         <input
           value={form.excerpt}
           onChange={(event) => setForm((current) => ({ ...current, excerpt: event.target.value }))}
         />
       </label>
-      <div className="split">
-        <label>
+      <div className="field-grid">
+        <label className="field">
           Visibility
           <select
             value={form.visibility}
@@ -88,7 +91,7 @@ export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: strin
             <option value="restricted">Restricted</option>
           </select>
         </label>
-        <label>
+        <label className="field">
           State
           <select
             value={form.state}
@@ -99,7 +102,7 @@ export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: strin
           </select>
         </label>
       </div>
-      <label>
+      <label className="field">
         Tags
         <input
           placeholder="comma,separated,tags"
@@ -114,7 +117,7 @@ export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: strin
           }
         />
       </label>
-      <label>
+      <label className="field">
         Markdown
         <textarea
           className="editor-textarea"
@@ -122,8 +125,10 @@ export function PageEditor({ spaces }: { spaces: Array<{ id: string; name: strin
           onChange={(event) => setForm((current) => ({ ...current, bodyMarkdown: event.target.value }))}
         />
       </label>
-      <button onClick={submit}>Save page</button>
-      {status ? <p className="muted">{status}</p> : null}
+      <div className="panel__footer">
+        <button onClick={submit}>Publish draft</button>
+        {status ? <p className="muted">{status}</p> : null}
+      </div>
     </section>
   );
 }

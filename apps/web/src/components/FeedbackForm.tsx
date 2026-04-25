@@ -21,14 +21,19 @@ export function FeedbackForm({ pageId, revisionId }: { pageId: string; revisionI
   }
 
   return (
-    <section className="card">
-      <h3>Was this page helpful?</h3>
+    <section className="feedback-card">
+      <div className="panel__header">
+        <div>
+          <p className="eyebrow">Feedback</p>
+          <h3>Was this article helpful?</h3>
+        </div>
+      </div>
       <textarea
         value={message}
         onChange={(event) => setMessage(event.target.value)}
-        placeholder="Optional comment"
+        placeholder="Optional context for your response"
       />
-      <div className="row">
+      <div className="feedback-actions">
         <button onClick={() => submit(true)}>Helpful</button>
         <button className="button-secondary" onClick={() => submit(false)}>
           Not helpful
@@ -38,4 +43,3 @@ export function FeedbackForm({ pageId, revisionId }: { pageId: string; revisionI
     </section>
   );
 }
-

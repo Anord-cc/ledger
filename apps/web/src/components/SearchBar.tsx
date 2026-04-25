@@ -1,11 +1,16 @@
 import { FormEvent, useState } from "react";
+import { Icon } from "./Icon";
 
 export function SearchBar({
   initialQuery = "",
-  onSearch
+  onSearch,
+  placeholder = "Search documentation",
+  compact = false
 }: {
   initialQuery?: string;
   onSearch: (query: string) => void;
+  placeholder?: string;
+  compact?: boolean;
 }) {
   const [query, setQuery] = useState(initialQuery);
 
@@ -15,14 +20,15 @@ export function SearchBar({
   }
 
   return (
-    <form className="search-bar" onSubmit={handleSubmit}>
+    <form className={`search-bar${compact ? " search-bar-compact" : ""}`} onSubmit={handleSubmit}>
+      <Icon name="search" className="icon" />
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search trusted answers"
+        placeholder={placeholder}
+        aria-label={placeholder}
       />
-      <button type="submit">Search</button>
+      <button type="submit">{compact ? "Go" : "Search"}</button>
     </form>
   );
 }
-
